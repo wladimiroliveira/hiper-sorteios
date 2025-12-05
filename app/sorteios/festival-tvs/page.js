@@ -3,9 +3,8 @@
 import { Navbar } from "@/app/components/navbar";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { useEffect, useState } from "react";
-import { success } from "zod";
 
-export default async function Home() {
+export default function Home() {
   const [scanResult, setScanResult] = useState(null);
 
   useEffect(() => {
@@ -33,13 +32,7 @@ export default async function Home() {
         <div className="max-w-[363px] w-[363px] h-[328px] bg-gray-200 rounded-sm mt-8 mb-8" />
         <div className="w-full">
           <h2 className="font-bold text-xl">Escaneie aqui o seu cupom</h2>
-          {scanResult ? (
-            <div>
-              success<a href={`http://${scanResult}`}>{scanResult}</a>
-            </div>
-          ) : (
-            <div id="reader"></div>
-          )}
+          {scanResult ? <div>{scanResult}</div> : <div id="reader"></div>}
         </div>
       </div>
     </div>
