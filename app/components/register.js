@@ -11,7 +11,7 @@ export function Register() {
   return (
     <div className="mt-4">
       <Form {...form}>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-4">
           <FormField
             control={form.control}
             name="namer"
