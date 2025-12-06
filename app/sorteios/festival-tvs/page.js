@@ -1,8 +1,11 @@
 "use client";
 
 import { Navbar } from "@/app/components/navbar";
+import { Scanner } from "@/app/components/scanner";
+import { Button } from "@/components/ui/button";
+import { IconCameraFilled } from "@tabler/icons-react";
 import { Html5Qrcode } from "html5-qrcode";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
   const [scanResult, setScanResult] = useState(null);
@@ -11,6 +14,7 @@ export default function Home() {
   const [stream, setStream] = useState(null);
   const [showPhotoOption, setShowPhotoOption] = useState(false);
   const [imageCapture, setImageCapture] = useState(null);
+  const [nfcNumber, setNfcNumber] = useState("");
 
   // --------------------------
   // SELECIONA A MELHOR CÂMERA
@@ -132,6 +136,21 @@ export default function Home() {
     }
   }
 
+  useEffect(() => {
+    if (!scanResult) return;
+
+    const regex = /p=([^|]+)/;
+    const match = scanResult.match(regex);
+
+    if (match && match[1]) {
+      const extractedValue = match[1];
+      console.log("valor extraído: ", extractedValue);
+      setNfcNumber(extractedValue);
+    } else {
+      console.log("Não foi possível extrair o valor.");
+    }
+  }, [scanResult]);
+
   return (
     <div className="flex flex-col items-center pt-8 pb-8">
       <div className="flex flex-col items-center max-w-[393px]">
@@ -142,13 +161,7 @@ export default function Home() {
         <div className="w-full">
           <h2 className="font-bold text-xl mb-4">Escaneie aqui o seu cupom</h2>
 
-          {scanResult && <div className="p-4 bg-green-200 rounded">Resultado: {scanResult}</div>}
-
-          {!scanResult && (
-            <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={openScanner}>
-              Abrir Scanner
-            </button>
-          )}
+          <Scanner openScanner={openScanner} sendNfc={"teste"} nfcNumber={nfcNumber} />
         </div>
       </div>
 
@@ -175,7 +188,7 @@ export default function Home() {
               onClick={takePhotoAndRead}
               className="absolute bottom-10 bg-white text-black px-5 py-3 rounded-full shadow-lg flex flex-col items-center gap-1"
             >
-              📷 Tirar Foto (alta nitidez)
+              📷 Tirar Foto
             </button>
           )}
         </div>
