@@ -4,8 +4,11 @@ import { Navbar } from "@/app/components/navbar";
 import { Scanner } from "@/app/components/scanner";
 import { Html5Qrcode } from "html5-qrcode";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
+
   const [scanResult, setScanResult] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [scanner, setScanner] = useState(null);
@@ -149,6 +152,27 @@ export default function Home() {
     }
   }, [scanResult]);
 
+  async function createRaffle() {
+    try {
+      const responseResult = await fetch(`${process.env.API_URL}/raffles`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nfc_key: nfcNumber,
+        }),
+      });
+      if (responseResult.ok) {
+        const [responseValue] = await responseResult.json();
+        router.push(`/success/${responseValue.client_id}`);
+      }
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  }
+
   // =====================================================
   //                   7) RENDER
   // =====================================================
@@ -162,7 +186,7 @@ export default function Home() {
         <div className="w-full">
           <h2 className="font-bold text-xl mb-4">Escaneie aqui o seu cupom</h2>
 
-          <Scanner openScanner={openScanner} sendNfc={"teste"} nfcNumber={nfcNumber} />
+          <Scanner openScanner={openScanner} sendNfc={createRaffle} nfcNumber={nfcNumber} />
         </div>
       </div>
 
