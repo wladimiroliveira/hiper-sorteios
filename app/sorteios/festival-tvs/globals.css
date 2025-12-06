@@ -136,7 +136,7 @@
 #full-screen-scanner video {
   width: 100vw !important;
   height: 100vh !important;
-  object-fit: contain !important; /* mantém proporção */
+  object-fit: contain !important;
   object-position: center center !important;
   background: black !important;
   display: block;
