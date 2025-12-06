@@ -2,8 +2,6 @@
 
 import { Navbar } from "@/app/components/navbar";
 import { Scanner } from "@/app/components/scanner";
-import { Button } from "@/components/ui/button";
-import { IconCameraFilled } from "@tabler/icons-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { useEffect, useState } from "react";
 
@@ -16,9 +14,6 @@ export default function Home() {
   const [imageCapture, setImageCapture] = useState(null);
   const [nfcNumber, setNfcNumber] = useState("");
 
-  // --------------------------
-  // SELECIONA A MELHOR CÂMERA
-  // --------------------------
   async function getBestBackCamera() {
     const cameras = await Html5Qrcode.getCameras();
     if (!cameras || cameras.length === 0) return null;
@@ -136,21 +131,27 @@ export default function Home() {
     }
   }
 
+  // =====================================================
+  //         6) EXTRAIR VALOR DO CÓDIGO
+  // =====================================================
   useEffect(() => {
     if (!scanResult) return;
 
     const regex = /p=([^|]+)/;
     const match = scanResult.match(regex);
 
-    if (match && match[1]) {
+    if (match?.[1]) {
       const extractedValue = match[1];
-      console.log("valor extraído: ", extractedValue);
       setNfcNumber(extractedValue);
+      console.log("Valor extraído:", extractedValue);
     } else {
       console.log("Não foi possível extrair o valor.");
     }
   }, [scanResult]);
 
+  // =====================================================
+  //                   7) RENDER
+  // =====================================================
   return (
     <div className="flex flex-col items-center pt-8 pb-8">
       <div className="flex flex-col items-center max-w-[393px]">
@@ -165,13 +166,14 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ----------- FULLSCREEN OVERLAY ----------- */}
+      {/* OVERLAY */}
       {isOpen && (
         <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center">
           <button className="absolute top-4 right-4 bg-white text-black px-3 py-1 rounded" onClick={closeScanner}>
             Fechar
           </button>
 
+          {/* container usado pelo html5-qrcode */}
           <div id="full-screen-scanner" className="absolute inset-0 w-screen h-screen"></div>
 
           <div
