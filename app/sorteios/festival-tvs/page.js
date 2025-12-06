@@ -2,13 +2,15 @@
 
 import { Navbar } from "@/app/components/navbar";
 import { Html5Qrcode } from "html5-qrcode";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function Home() {
   const [scanResult, setScanResult] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [scanner, setScanner] = useState(null);
+  const [stream, setStream] = useState(null);
   const [showPhotoOption, setShowPhotoOption] = useState(false);
+  const [imageCapture, setImageCapture] = useState(null);
 
   // --------------------------
   // SELECIONA A MELHOR CÂMERA
@@ -19,41 +21,26 @@ export default function Home() {
 
     const norm = (str) => str.toLowerCase();
 
-    // Preferência: wide ou main
     let wide = cameras.find((cam) => norm(cam.label).includes("wide") || norm(cam.label).includes("main"));
     if (wide) return wide.id;
 
-    // Filtrar câmeras traseiras
     let backs = cameras.filter(
       (cam) =>
         norm(cam.label).includes("back") || norm(cam.label).includes("rear") || norm(cam.label).includes("traseira"),
     );
 
-    // Se houver múltiplas, tente identificar a melhor
     if (backs.length > 1) {
       let mainBack = backs.find((cam) => norm(cam.label).includes("main") || norm(cam.label).includes("wide"));
       if (mainBack) return mainBack.id;
-
-      // Ordenar por megapixels quando possível
-      let sortedByMP = backs.sort((a, b) => {
-        const extractMP = (label) => {
-          const m = label.match(/(\d+)\s*mp/i);
-          return m ? parseInt(m[1]) : 0;
-        };
-        return extractMP(b.label) - extractMP(a.label);
-      });
-
-      return sortedByMP[0].id;
     }
 
     if (backs.length === 1) return backs[0].id;
 
-    // Fallback
     return cameras[0].id;
   }
 
   // --------------------------
-  //      ABRIR SCANNER
+  //   ABRIR SCANNER + STREAM
   // --------------------------
   async function openScanner() {
     setIsOpen(true);
@@ -64,45 +51,82 @@ export default function Home() {
     const html5QrCode = new Html5Qrcode("full-screen-scanner");
     setScanner(html5QrCode);
 
-    // Timeout de 20s para mostrar opção de tirar foto
-    setTimeout(() => {
-      setShowPhotoOption(true);
-    }, 20000);
+    // Iniciar stream manualmente para permitir IMAGECAPTURE
+    const videoStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        deviceId: { exact: cameraId },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+        focusMode: "continuous",
+      },
+    });
 
+    setStream(videoStream);
+
+    // Criar ImageCapture com foco contínuo
+    const track = videoStream.getVideoTracks()[0];
+    const imgCap = new ImageCapture(track);
+    setImageCapture(imgCap);
+
+    try {
+      const capabilities = await imgCap.getPhotoCapabilities();
+      if (capabilities.focusMode.includes("continuous")) {
+        await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
+      }
+    } catch (err) {
+      console.warn("Foco automático não suportado.", err);
+    }
+
+    // Iniciar scanner usando o stream manual
     html5QrCode.start(
-      cameraId,
+      { deviceId: { exact: cameraId } },
       { fps: 10, qrbox: { width: 250, height: 250 } },
       (decodedText) => {
-        html5QrCode.stop();
+        closeScanner();
         setScanResult(decodedText);
-        setIsOpen(false);
       },
       () => {},
     );
+
+    // Após 20 segundos, mostrar opção de tirar foto
+    setTimeout(() => {
+      setShowPhotoOption(true);
+    }, 20000);
   }
 
   // --------------------------
   //      FECHAR SCANNER
   // --------------------------
   function closeScanner() {
-    if (scanner) {
-      scanner.stop().catch(() => {});
-    }
+    if (scanner) scanner.stop().catch(() => {});
+    if (stream) stream.getTracks().forEach((t) => t.stop());
     setIsOpen(false);
   }
 
   // --------------------------
-  // LER QR DE UMA FOTO TIRADA
+  //     TIRAR FOTO COM FOCO
   // --------------------------
-  async function handlePhotoUpload(e) {
-    if (!e.target.files || e.target.files.length === 0) return;
-
-    const file = e.target.files[0];
+  async function takePhotoAndRead() {
+    if (!imageCapture) return alert("Erro: ImageCapture não disponível.");
 
     try {
-      const result = await Html5Qrcode.scanFile(file, true);
+      const blob = await imageCapture.takePhoto();
+
+      const bitmap = await createImageBitmap(blob);
+      const canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(bitmap, 0, 0);
+
+      const dataUrl = canvas.toDataURL("image/png");
+
+      // Ler QR usando método interno
+      const result = await Html5Qrcode.scanImage(dataUrl, false);
+
+      closeScanner();
       setScanResult(result);
-      setIsOpen(false);
     } catch (err) {
       alert("Não foi possível ler o QR code da foto.");
     }
@@ -128,31 +152,15 @@ export default function Home() {
         </div>
       </div>
 
-      {/* INPUT PARA TIRAR FOTO */}
-      <input
-        id="camera-input"
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handlePhotoUpload}
-      />
-
-      {/* ----------- OVERLAY FULLSCREEN ----------- */}
+      {/* ----------- FULLSCREEN OVERLAY ----------- */}
       {isOpen && (
-        <div
-          className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center"
-          style={{ width: "100vw", height: "100vh" }}
-        >
-          {/* Botão de fechar */}
-          <button className="absolute top-4 right-4 bg-white text-black px-3 py-1 rounded z-50" onClick={closeScanner}>
+        <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center">
+          <button className="absolute top-4 right-4 bg-white text-black px-3 py-1 rounded" onClick={closeScanner}>
             Fechar
           </button>
 
-          {/* Scanner container */}
           <div id="full-screen-scanner" className="absolute inset-0 w-screen h-screen"></div>
 
-          {/* Moldura */}
           <div
             className="absolute border-4 border-green-400 rounded-xl"
             style={{
@@ -162,16 +170,12 @@ export default function Home() {
             }}
           ></div>
 
-          {/* Botão de tirar foto após 20s */}
           {showPhotoOption && (
             <button
-              onClick={() => document.getElementById("camera-input").click()}
-              className="absolute bottom-10 bg-white text-black px-5 py-3 rounded-full shadow-lg flex flex-col items-center gap-1 z-50"
+              onClick={takePhotoAndRead}
+              className="absolute bottom-10 bg-white text-black px-5 py-3 rounded-full shadow-lg flex flex-col items-center gap-1"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M10.5 2a1 1 0 0 1 .8.4l.9 1.2H14a1 1 0 0 1 1 1V13a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4.6a1 1 0 0 1 1-1h1.8l.9-1.2A1 1 0 0 1 6.5 2h4zM8 5.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z" />
-              </svg>
-              <span className="text-sm font-semibold">Tirar Foto</span>
+              📷 Tirar Foto (alta nitidez)
             </button>
           )}
         </div>
