@@ -131,3 +131,13 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Ajusta o vídeo gerado pelo html5-qrcode */
+#full-screen-scanner video {
+  width: 100vw !important;
+  height: 100vh !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  background: black !important;
+  display: block;
+}
