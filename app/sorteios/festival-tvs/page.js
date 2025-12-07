@@ -5,6 +5,8 @@ import { Scanner } from "@/app/components/scanner";
 import { Html5Qrcode } from "html5-qrcode";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useRafflesStore } from "@/store/raffles-store";
+import { useNFStore } from "@/store/nf-store";
 
 export default function Home() {
   const router = useRouter();
@@ -15,7 +17,7 @@ export default function Home() {
   const [stream, setStream] = useState(null);
   const [showPhotoOption, setShowPhotoOption] = useState(false);
   const [imageCapture, setImageCapture] = useState(null);
-  const [nfcNumber, setNfcNumber] = useState("");
+  const [nfcNumber, setNfcNumber] = useState("15190108533503000134651120001359971003380468");
 
   async function getBestBackCamera() {
     const cameras = await Html5Qrcode.getCameras();
@@ -154,7 +156,7 @@ export default function Home() {
 
   async function createRaffle() {
     try {
-      const responseResult = await fetch(`${process.env.API_URL}/raffles`, {
+      const responseResult = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffles`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -163,9 +165,26 @@ export default function Home() {
           nfc_key: nfcNumber,
         }),
       });
+      const responseValue = await responseResult.json();
+      if (!responseResult.ok) {
+        if (responseValue?.message === "Valor do cupom não atingiu o valor mínimo para participar do sorteio.") {
+          console.log("Valor do cupom não atingiu o valor mínimo para participar do sorteio.");
+        }
+        if (responseValue?.message === "CPF não encontrado no cupom fiscal.") {
+          console.log("CPF não encontrado no cupom fiscal.");
+        }
+        if (responseValue?.message === "Cliente não encontrado no sistema") {
+          const { clearNF, setNF } = useNFStore.getState();
+          clearNF();
+          setNF(nfcNumber);
+          return router.push("festival-tvs/register");
+        }
+      }
       if (responseResult.ok) {
-        const [responseValue] = await responseResult.json();
-        router.push(`/success/${responseValue.client_id}`);
+        const { clearRaffles, setRaffles } = useRafflesStore.json();
+        clearRaffles();
+        setRaffles(responseValue);
+        return router.push(`festival-tvs/register`);
       }
     } catch (err) {
       console.error(err);

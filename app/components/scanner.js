@@ -9,7 +9,9 @@ export function Scanner({ openScanner, sendNfc, nfcNumber }) {
         <IconCameraFilled />
         Abrir scanner
       </Button>
-      <span className="text-sm italic text-terciaria">{nfcNumber ? nfcNumber : "Nenhum cupom escaneado"}</span>
+      <span className="text-sm italic text-terciaria">
+        {nfcNumber ? `QR Code coletado: ${nfcNumber}` : "Nenhum cupom escaneado"}
+      </span>
       <div className="text-right">
         <Button className="bg-primaria cursor-pointer hover:bg-hover-primaria" onClick={sendNfc}>
           Enviar
