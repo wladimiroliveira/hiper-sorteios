@@ -1,20 +1,24 @@
 "use client";
 
 import { Navbar } from "@/app/components/navbar";
+import { Scanner } from "@/app/components/scanner";
 import { Html5Qrcode } from "html5-qrcode";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useRafflesStore } from "@/store/raffles-store";
+import { useNFStore } from "@/store/nf-store";
 
 export default function Home() {
+  const router = useRouter();
+
   const [scanResult, setScanResult] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [scanner, setScanner] = useState(null);
   const [stream, setStream] = useState(null);
   const [showPhotoOption, setShowPhotoOption] = useState(false);
   const [imageCapture, setImageCapture] = useState(null);
+  const [nfcNumber, setNfcNumber] = useState("15190108533503000134651120001359971003380468");
 
-  // --------------------------
-  // SELECIONA A MELHOR CÂMERA
-  // --------------------------
   async function getBestBackCamera() {
     const cameras = await Html5Qrcode.getCameras();
     if (!cameras || cameras.length === 0) return null;
@@ -132,6 +136,65 @@ export default function Home() {
     }
   }
 
+  // =====================================================
+  //         6) EXTRAIR VALOR DO CÓDIGO
+  // =====================================================
+  useEffect(() => {
+    if (!scanResult) return;
+
+    const regex = /p=([^|]+)/;
+    const match = scanResult.match(regex);
+
+    if (match?.[1]) {
+      const extractedValue = match[1];
+      setNfcNumber(extractedValue);
+      console.log("Valor extraído:", extractedValue);
+    } else {
+      console.log("Não foi possível extrair o valor.");
+    }
+  }, [scanResult]);
+
+  async function createRaffle() {
+    try {
+      const responseResult = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffles`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nfc_key: nfcNumber,
+        }),
+      });
+      const responseValue = await responseResult.json();
+      if (!responseResult.ok) {
+        if (responseValue?.message === "Valor do cupom não atingiu o valor mínimo para participar do sorteio.") {
+          console.log("Valor do cupom não atingiu o valor mínimo para participar do sorteio.");
+        }
+        if (responseValue?.message === "CPF não encontrado no cupom fiscal.") {
+          console.log("CPF não encontrado no cupom fiscal.");
+        }
+        if (responseValue?.message === "Cliente não encontrado no sistema") {
+          const { clearNF, setNF } = useNFStore.getState();
+          clearNF();
+          setNF(nfcNumber);
+          return router.push("festival-tvs/register");
+        }
+      }
+      if (responseResult.ok) {
+        const { clearRaffles, setRaffles } = useRafflesStore.json();
+        clearRaffles();
+        setRaffles(responseValue);
+        return router.push(`festival-tvs/register`);
+      }
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  }
+
+  // =====================================================
+  //                   7) RENDER
+  // =====================================================
   return (
     <div className="flex flex-col items-center pt-8 pb-8">
       <div className="flex flex-col items-center max-w-[393px]">
@@ -142,23 +205,18 @@ export default function Home() {
         <div className="w-full">
           <h2 className="font-bold text-xl mb-4">Escaneie aqui o seu cupom</h2>
 
-          {scanResult && <div className="p-4 bg-green-200 rounded">Resultado: {scanResult}</div>}
-
-          {!scanResult && (
-            <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={openScanner}>
-              Abrir Scanner
-            </button>
-          )}
+          <Scanner openScanner={openScanner} sendNfc={createRaffle} nfcNumber={nfcNumber} />
         </div>
       </div>
 
-      {/* ----------- FULLSCREEN OVERLAY ----------- */}
+      {/* OVERLAY */}
       {isOpen && (
         <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center">
           <button className="absolute top-4 right-4 bg-white text-black px-3 py-1 rounded" onClick={closeScanner}>
             Fechar
           </button>
 
+          {/* container usado pelo html5-qrcode */}
           <div id="full-screen-scanner" className="absolute inset-0 w-screen h-screen"></div>
 
           <div
@@ -175,7 +233,7 @@ export default function Home() {
               onClick={takePhotoAndRead}
               className="absolute bottom-10 bg-white text-black px-5 py-3 rounded-full shadow-lg flex flex-col items-center gap-1"
             >
-              📷 Tirar Foto (alta nitidez)
+              📷 Tirar Foto
             </button>
           )}
         </div>
