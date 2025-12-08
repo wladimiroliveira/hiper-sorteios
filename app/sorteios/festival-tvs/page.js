@@ -17,7 +17,7 @@ export default function Home() {
   const [stream, setStream] = useState(null);
   const [showPhotoOption, setShowPhotoOption] = useState(false);
   const [imageCapture, setImageCapture] = useState(null);
-  const [nfcNumber, setNfcNumber] = useState("15190108533503000134651120001359971003380468");
+  const [nfcNumber, setNfcNumber] = useState("");
 
   async function getBestBackCamera() {
     const cameras = await Html5Qrcode.getCameras();
