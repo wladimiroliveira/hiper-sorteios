@@ -35,11 +35,14 @@ export default function Home() {
 
     const norm = (str) => str.toLowerCase();
 
-    const back = cams.find(
-      (c) => norm(c.label).includes("back") || norm(c.label).includes("rear") || norm(c.label).includes("environment"),
-    );
+    let wide = cameras.find((cam) => norm(cam.label).includes("wide") || norm(cam.label).includes("main"));
+    if (wide) return setCurrentCameraId(wide?.id ?? cams[0].id);
 
-    setCurrentCameraId(back?.id ?? cams[0].id);
+    let backs = cameras.filter(
+      (cam) =>
+        norm(cam.label).includes("back") || norm(cam.label).includes("rear") || norm(cam.label).includes("traseira"),
+    );
+    if (backs) return setCurrentCameraId(backs?.id ?? cams[0].id);
   }
 
   useEffect(() => {
