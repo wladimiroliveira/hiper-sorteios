@@ -22,46 +22,46 @@ export default function Home() {
   const [open, setOpen] = useState(false);
   const [modalInfo, setModalInfo] = useState({});
 
-  async function getBestBackCamera() {
-    const cameras = await Html5Qrcode.getCameras();
-    if (!cameras || cameras.length === 0) return null;
+  // NOVOS ESTADOS
+  const [cameras, setCameras] = useState([]);
+  const [currentCameraId, setCurrentCameraId] = useState(null);
+
+  // ===========================
+  //   LISTAR CÂMERAS DISPONÍVEIS
+  // ===========================
+  async function loadCameras() {
+    const cams = await Html5Qrcode.getCameras();
+    setCameras(cams);
 
     const norm = (str) => str.toLowerCase();
 
-    let wide = cameras.find((cam) => norm(cam.label).includes("wide") || norm(cam.label).includes("main"));
-    if (wide) return wide.id;
-
-    let backs = cameras.filter(
-      (cam) =>
-        norm(cam.label).includes("back") || norm(cam.label).includes("rear") || norm(cam.label).includes("traseira"),
+    const back = cams.find(
+      (c) => norm(c.label).includes("back") || norm(c.label).includes("rear") || norm(c.label).includes("environment"),
     );
 
-    if (backs.length > 1) {
-      let mainBack = backs.find((cam) => norm(cam.label).includes("main") || norm(cam.label).includes("wide"));
-      if (mainBack) return mainBack.id;
-    }
-
-    if (backs.length === 1) return backs[0].id;
-
-    return cameras[0].id;
+    setCurrentCameraId(back?.id ?? cams[0].id);
   }
 
-  // --------------------------
-  //   ABRIR SCANNER + STREAM
-  // --------------------------
+  useEffect(() => {
+    loadCameras();
+  }, []);
+
+  // ===========================
+  //         ABRIR SCANNER
+  // ===========================
   async function openScanner() {
+    if (!currentCameraId) return alert("Nenhuma câmera encontrada");
+
     setIsOpen(true);
     setShowPhotoOption(false);
-
-    const cameraId = await getBestBackCamera();
 
     const html5QrCode = new Html5Qrcode("full-screen-scanner");
     setScanner(html5QrCode);
 
-    // Iniciar stream manualmente para permitir IMAGECAPTURE
+    // Iniciar stream manual
     const videoStream = await navigator.mediaDevices.getUserMedia({
       video: {
-        deviceId: { exact: cameraId },
+        deviceId: { exact: currentCameraId },
         width: { ideal: 1920 },
         height: { ideal: 1080 },
         focusMode: "continuous",
@@ -70,7 +70,7 @@ export default function Home() {
 
     setStream(videoStream);
 
-    // Criar ImageCapture com foco contínuo
+    // ImageCapture
     const track = videoStream.getVideoTracks()[0];
     const imgCap = new ImageCapture(track);
     setImageCapture(imgCap);
@@ -81,12 +81,12 @@ export default function Home() {
         await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
       }
     } catch (err) {
-      console.warn("Foco automático não suportado.", err);
+      console.warn("Foco contínuo não suportado", err);
     }
 
-    // Iniciar scanner usando o stream manual
+    // Iniciar scanner
     html5QrCode.start(
-      { deviceId: { exact: cameraId } },
+      { deviceId: { exact: currentCameraId } },
       { fps: 10, qrbox: { width: 250, height: 250 } },
       (decodedText) => {
         closeScanner();
@@ -95,24 +95,24 @@ export default function Home() {
       () => {},
     );
 
-    // Após 20 segundos, mostrar opção de tirar foto
+    // Mostrar botão de tirar foto após 20s
     setTimeout(() => {
       setShowPhotoOption(true);
     }, 20000);
   }
 
-  // --------------------------
-  //      FECHAR SCANNER
-  // --------------------------
+  // ===========================
+  //         FECHAR SCANNER
+  // ===========================
   function closeScanner() {
     if (scanner) scanner.stop().catch(() => {});
     if (stream) stream.getTracks().forEach((t) => t.stop());
     setIsOpen(false);
   }
 
-  // --------------------------
-  //     TIRAR FOTO COM FOCO
-  // --------------------------
+  // ===========================
+  //    TIRAR FOTO & LER QR
+  // ===========================
   async function takePhotoAndRead() {
     if (!imageCapture) return alert("Erro: ImageCapture não disponível.");
 
@@ -129,13 +129,11 @@ export default function Home() {
 
       const dataUrl = canvas.toDataURL("image/png");
 
-      // Ler QR usando método interno
       const result = await Html5Qrcode.scanImage(dataUrl, false);
 
       closeScanner();
       setScanResult(result);
     } catch (err) {
-      alert("Não foi possível ler o QR code da foto.");
       setModalInfo({
         title: "Erro",
         description: "Não foi possível ler o QR code da foto.",
@@ -144,9 +142,25 @@ export default function Home() {
     }
   }
 
-  // =====================================================
-  //         6) EXTRAIR VALOR DO CÓDIGO
-  // =====================================================
+  // ===========================
+  //      TROCAR CÂMERA
+  // ===========================
+  async function switchCamera() {
+    if (cameras.length <= 1) return;
+
+    const index = cameras.findIndex((c) => c.id === currentCameraId);
+    const next = (index + 1) % cameras.length;
+
+    setCurrentCameraId(cameras[next].id);
+
+    // Reiniciar scanner com nova câmera
+    closeScanner();
+    setTimeout(() => openScanner(), 300);
+  }
+
+  // ===========================
+  //  EXTRAIR VALOR DO QR CODE
+  // ===========================
   useEffect(() => {
     if (!scanResult) return;
 
@@ -174,9 +188,9 @@ export default function Home() {
         }),
       });
       const responseValue = await responseResult.json();
+
       if (!responseResult.ok) {
         if (responseValue?.message === "Valor do cupom não atingiu o valor mínimo para participar do sorteio.") {
-          console.log("Valor do cupom não atingiu o valor mínimo para participar do sorteio.");
           setModalInfo({
             title: "Erro",
             description: responseValue?.message,
@@ -184,7 +198,6 @@ export default function Home() {
           setOpen(true);
         }
         if (responseValue?.message === "CPF não encontrado no cupom fiscal.") {
-          console.log("CPF não encontrado no cupom fiscal.");
           setModalInfo({
             title: "Erro",
             description: responseValue?.message,
@@ -198,8 +211,9 @@ export default function Home() {
           return router.push("festival-tvs/register");
         }
       }
+
       if (responseResult.ok) {
-        const { clearRaffles, setRaffles } = useRafflesStore.json();
+        const { clearRaffles, setRaffles } = useRafflesStore.getState();
         clearRaffles();
         setRaffles(responseValue);
         return router.push(`festival-tvs/register`);
@@ -214,9 +228,9 @@ export default function Home() {
     setOpen(bool);
   }
 
-  // =====================================================
-  //                   7) RENDER
-  // =====================================================
+  // ===========================
+  //         RENDER
+  // ===========================
   return (
     <div className="flex flex-col items-center pt-8 pb-8">
       <Modal
@@ -227,6 +241,7 @@ export default function Home() {
         onSetOpen={handleSetOpen}
         open={open}
       />
+
       <div className="flex flex-col items-center max-w-[363px]">
         <Navbar />
 
@@ -239,15 +254,21 @@ export default function Home() {
         </div>
       </div>
 
-      {/* OVERLAY */}
+      {/* OVERLAY SCANNER */}
       {isOpen && (
         <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center">
+          {/* FECHAR */}
           <button className="absolute top-4 right-4 bg-white text-black px-3 py-1 rounded" onClick={closeScanner}>
             Fechar
           </button>
 
-          {/* container usado pelo html5-qrcode */}
-          <div id="full-screen-scanner" className="absolute inset-0 w-screen h-screen"></div>
+          {/* TROCAR CÂMERA */}
+          <button className="absolute top-4 left-4 bg-white text-black px-3 py-1 rounded" onClick={switchCamera}>
+            🔄 Trocar câmera
+          </button>
+
+          {/* CONTAINER DO SCANNER */}
+          <div id="full-screen-scanner" className="absolute inset-0 w-screen h-screen" />
 
           <div
             className="absolute border-4 border-green-400 rounded-xl"
@@ -256,7 +277,7 @@ export default function Home() {
               height: "260px",
               pointerEvents: "none",
             }}
-          ></div>
+          />
 
           {showPhotoOption && (
             <button
