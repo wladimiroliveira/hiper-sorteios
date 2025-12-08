@@ -29,20 +29,8 @@ export default function Home() {
   //        🔥 SELEÇÃO MAIS PRECISA DA CÂMERA TRASEIRA
   // ==========================================================
   async function getBestBackCameraId() {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const videoInputs = devices.filter((d) => d.kind === "videoinput");
-    const norm = (s) => s.toLowerCase();
-
-    setCameras(videoInputs);
-
-    // 1) Buscar por back/rear/environment
-    const back = videoInputs.find(
-      (d) =>
-        norm(d.label).includes("back") ||
-        norm(d.label).includes("rear") ||
-        norm(d.label).includes("environment") ||
-        norm(d.label).includes("traseira"),
-    );
+    const camears = await navigator.mediaDevices.getUserMedia({ video: true });
+    console.log(camears);
 
     if (back) return back.deviceId;
 
