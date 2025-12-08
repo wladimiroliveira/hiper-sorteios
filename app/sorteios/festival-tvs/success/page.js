@@ -8,7 +8,6 @@ import { useEffect, useState } from "react";
 
 export default function Page() {
   const { raffles } = useRafflesStore();
-  // console.log("Raffles ", raffles);
   const [numsGerados, setNumsGerados] = useState([]);
 
   useEffect(() => {
