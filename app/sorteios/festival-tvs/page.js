@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRafflesStore } from "@/store/raffles-store";
 import { useNFStore } from "@/store/nf-store";
+import { Modal } from "@/app/components/modal";
 
 export default function Home() {
   const router = useRouter();
@@ -18,6 +19,8 @@ export default function Home() {
   const [showPhotoOption, setShowPhotoOption] = useState(false);
   const [imageCapture, setImageCapture] = useState(null);
   const [nfcNumber, setNfcNumber] = useState("");
+  const [open, setOpen] = useState(false);
+  const [modalInfo, setModalInfo] = useState({});
 
   async function getBestBackCamera() {
     const cameras = await Html5Qrcode.getCameras();
@@ -133,6 +136,11 @@ export default function Home() {
       setScanResult(result);
     } catch (err) {
       alert("Não foi possível ler o QR code da foto.");
+      setModalInfo({
+        title: "Erro",
+        description: "Não foi possível ler o QR code da foto.",
+      });
+      setOpen(true);
     }
   }
 
@@ -169,9 +177,19 @@ export default function Home() {
       if (!responseResult.ok) {
         if (responseValue?.message === "Valor do cupom não atingiu o valor mínimo para participar do sorteio.") {
           console.log("Valor do cupom não atingiu o valor mínimo para participar do sorteio.");
+          setModalInfo({
+            title: "Erro",
+            description: responseValue?.message,
+          });
+          setOpen(true);
         }
         if (responseValue?.message === "CPF não encontrado no cupom fiscal.") {
           console.log("CPF não encontrado no cupom fiscal.");
+          setModalInfo({
+            title: "Erro",
+            description: responseValue?.message,
+          });
+          setOpen(true);
         }
         if (responseValue?.message === "Cliente não encontrado no sistema") {
           const { clearNF, setNF } = useNFStore.getState();
@@ -192,12 +210,24 @@ export default function Home() {
     }
   }
 
+  function handleSetOpen(bool) {
+    setOpen(bool);
+  }
+
   // =====================================================
   //                   7) RENDER
   // =====================================================
   return (
     <div className="flex flex-col items-center pt-8 pb-8">
-      <div className="flex flex-col items-center max-w-[393px]">
+      <Modal
+        info={{
+          title: modalInfo?.title,
+          description: modalInfo?.description,
+        }}
+        onSetOpen={handleSetOpen}
+        open={open}
+      />
+      <div className="flex flex-col items-center max-w-[363px]">
         <Navbar />
 
         <div className="max-w-[363px] w-[363px] h-[328px] bg-gray-200 rounded-sm mt-8 mb-8" />
