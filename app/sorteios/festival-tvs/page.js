@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useRafflesStore } from "@/store/raffles-store";
 import { useNFStore } from "@/store/nf-store";
 import { Modal } from "@/app/components/modal";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const router = useRouter();
@@ -28,179 +29,13 @@ export default function Home() {
   // ==========================================================
   //        🔥 SELEÇÃO MAIS PRECISA DA CÂMERA TRASEIRA
   // ==========================================================
-  async function getBestBackCameraId() {
-    const camears = await navigator.mediaDevices.getUserMedia({ video: true });
-    console.log(camears);
-
-    if (back) return back.deviceId;
-
-    // 2) Tentar usar facingMode environment
-    try {
-      const test = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { exact: "environment" } },
-      });
-
-      const track = test.getVideoTracks()[0];
-      const id = track.getSettings().deviceId;
-
-      track.stop();
-      return id;
-    } catch {}
-
-    // 3) Fallback: escolher a câmera com maior resolução real
-    const results = [];
-
-    for (const dev of videoInputs) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { deviceId: dev.deviceId },
-        });
-
-        const track = stream.getVideoTracks()[0];
-        const settings = track.getSettings();
-
-        results.push({
-          deviceId: dev.deviceId,
-          resolution: (settings.width || 0) * (settings.height || 0),
-        });
-
-        stream.getTracks().forEach((t) => t.stop());
-      } catch {}
-    }
-
-    results.sort((a, b) => b.resolution - a.resolution);
-
-    return results[0]?.deviceId ?? videoInputs[0]?.deviceId;
+  async function getCamera() {
+    const cameras = await navigator.mediaDevices.getUserMedia({ video: true });
+    console.log(cameras);
+    const mainCameraObj = cameras.find((camera) => camera.label.includes("0"));
+    const mainCameraId = mainCameraObj?.deviceId;
+    if (mainCameraId) return mainCameraId;
   }
-
-  async function loadCameras() {
-    const bestId = await getBestBackCameraId();
-    setCurrentCameraId(bestId);
-  }
-
-  useEffect(() => {
-    loadCameras();
-  }, []);
-
-  // ==========================================================
-  //                  ABRIR SCANNER
-  // ==========================================================
-  async function openScanner() {
-    if (!currentCameraId) return alert("Nenhuma câmera encontrada");
-
-    setIsOpen(true);
-    setShowPhotoOption(false);
-
-    const html5QrCode = new Html5Qrcode("full-screen-scanner");
-    setScanner(html5QrCode);
-
-    // Stream manual
-    const videoStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        deviceId: { exact: currentCameraId },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-        focusMode: "continuous",
-      },
-    });
-
-    setStream(videoStream);
-
-    const track = videoStream.getVideoTracks()[0];
-    const imgCap = new ImageCapture(track);
-    setImageCapture(imgCap);
-
-    try {
-      const capabilities = await imgCap.getPhotoCapabilities();
-      if (capabilities.focusMode.includes("continuous")) {
-        await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-      }
-    } catch {}
-
-    html5QrCode.start(
-      { deviceId: { exact: currentCameraId } },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      (decodedText) => {
-        closeScanner();
-        setScanResult(decodedText);
-      },
-      () => {},
-    );
-
-    setTimeout(() => {
-      setShowPhotoOption(true);
-    }, 20000);
-  }
-
-  // ==========================================================
-  //                  FECHAR SCANNER
-  // ==========================================================
-  function closeScanner() {
-    if (scanner) scanner.stop().catch(() => {});
-    if (stream) stream.getTracks().forEach((t) => t.stop());
-    setIsOpen(false);
-  }
-
-  // ==========================================================
-  //               TIRAR FOTO E LER QR
-  // ==========================================================
-  async function takePhotoAndRead() {
-    if (!imageCapture) return alert("Erro: ImageCapture não disponível.");
-
-    try {
-      const blob = await imageCapture.takePhoto();
-
-      const bitmap = await createImageBitmap(blob);
-      const canvas = document.createElement("canvas");
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(bitmap, 0, 0);
-
-      const dataUrl = canvas.toDataURL("image/png");
-
-      const result = await Html5Qrcode.scanImage(dataUrl, false);
-
-      closeScanner();
-      setScanResult(result);
-    } catch {
-      setModalInfo({
-        title: "Erro",
-        description: "Não foi possível ler o QR code da foto.",
-      });
-      setOpen(true);
-    }
-  }
-
-  // ==========================================================
-  //                TROCAR CÂMERA (botão)
-  // ==========================================================
-  async function switchCamera() {
-    if (cameras.length <= 1) return;
-
-    const index = cameras.findIndex((c) => c.deviceId === currentCameraId);
-    const next = (index + 1) % cameras.length;
-
-    setCurrentCameraId(cameras[next].deviceId);
-
-    closeScanner();
-    setTimeout(() => openScanner(), 300);
-  }
-
-  // ==========================================================
-  //                EXTRAIR VALOR DO QR
-  // ==========================================================
-  useEffect(() => {
-    if (!scanResult) return;
-
-    const regex = /p=([^|]+)/;
-    const match = scanResult.match(regex);
-
-    if (match?.[1]) {
-      setNfcNumber(match[1]);
-    }
-  }, [scanResult]);
 
   async function createRaffle() {
     try {
@@ -249,13 +84,10 @@ export default function Home() {
   function handleSetOpen(bool) {
     setOpen(bool);
   }
-
-  // ==========================================================
-  //                         RENDER
-  // ==========================================================
   return (
     <div className="flex flex-col items-center pt-8 pb-8">
-      <Modal
+      <Button onClick={getCamera}>Teste</Button>
+      {/* <Modal
         info={{ title: modalInfo?.title, description: modalInfo?.description }}
         onSetOpen={handleSetOpen}
         open={open}
@@ -296,7 +128,7 @@ export default function Home() {
             </button>
           )}
         </div>
-      )}
+      )} */}
     </div>
   );
 }
