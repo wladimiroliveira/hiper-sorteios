@@ -23,7 +23,7 @@ export function RegisterCupomContainer() {
       console.log(process.env.NODE_ENV);
       console.log(process.env.NEXT_PUBLIC_API_URL);
       console.log(process.env.API_URL);
-      const responseResult = await fetch(`https://api.hipersenna.com/raffles`, {
+      const responseResult = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffles`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

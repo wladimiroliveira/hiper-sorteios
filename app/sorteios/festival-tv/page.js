@@ -11,6 +11,8 @@ import clsx from "clsx";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { useState } from "react";
+import { SearchNumbers } from "@/app/components/searchNumbers";
+import { Navbar } from "@/app/components/navbar";
 
 export default function Page() {
   const devices = useDevices();
@@ -72,7 +74,7 @@ export default function Page() {
       } else {
         throw new Error("Não foi possível extrair o valor.");
       }
-      const responseResult = await fetch(`https://api.hipersenna.com/raffles`, {
+      const responseResult = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffles`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -83,24 +85,10 @@ export default function Page() {
       });
       const responseValue = await responseResult.json();
       if (!responseResult.ok) {
-        if (responseValue?.message === "Valor do cupom não atingiu o valor mínimo para participar do sorteio.") {
+        if (responseValue.message) {
           setModalInfo({
             title: "Atenção",
-            description: responseValue?.message,
-          });
-          setOpen(true);
-        }
-        if (responseValue?.message === "CPF não encontrado no cupom fiscal.") {
-          setModalInfo({
-            title: "Atenção",
-            description: responseValue?.message,
-          });
-          setOpen(true);
-        }
-        if (responseValue?.message === "Já existem rifas cadastradas para esse cupom") {
-          setModalInfo({
-            title: "Atenção",
-            description: responseValue?.message,
+            description: responseValue.message,
           });
           setOpen(true);
         }
@@ -134,7 +122,7 @@ export default function Page() {
   }
 
   return (
-    <div className="flex flex-col align-items justify-center max-w-[363px] m-auto pt-8 pb-8 gap-4">
+    <div className="flex flex-col align-items justify-center max-w-[363px] m-auto pb-8 gap-8">
       <Modal
         info={{
           title: modalInfo?.title,
@@ -143,6 +131,7 @@ export default function Page() {
         onSetOpen={handleSetOpen}
         open={open}
       />
+      <Navbar />
       <Image
         className="bg-gray-200 w-[363px] h-[328px] rounded-sm"
         src="/art-image.jpg"
@@ -205,6 +194,10 @@ export default function Page() {
             height: { ideal: 1080 },
           }}
         />
+      </div>
+      <div className="flex flex-col gap-4">
+        <h2 className="font-bold">Contulte seus números da sorte</h2>
+        <SearchNumbers />
       </div>
     </div>
   );
