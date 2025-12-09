@@ -2,7 +2,9 @@
 
 import { Modal } from "@/app/components/modal";
 import { RegisterCupomContainer } from "@/app/components/registerCupom";
+import { SearchNumbers } from "@/app/components/searchNumbers";
 import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
 import { useNFStore } from "@/store/nf-store";
 import { useRafflesStore } from "@/store/raffles-store";
 import { IconCameraFilled, IconX } from "@tabler/icons-react";
@@ -57,14 +59,12 @@ export default function Page() {
   async function createRaffle(scanResult) {
     try {
       const regex = /p=([^|]+)/;
-      console.log(scanResult);
       const match = scanResult[0].rawValue.match(regex);
       let nfcNumber;
 
       if (match?.[1]) {
         const extractedValue = match[1];
         nfcNumber = extractedValue;
-        console.log("Valor extraído:", extractedValue);
       } else {
         throw new Error("Não foi possível extrair o valor.");
       }
@@ -102,6 +102,9 @@ export default function Page() {
         }
         if (responseValue?.message === "Cliente não encontrado no sistema") {
           const { clearCupom, setCupom } = useCupomStore.getState();
+          const { clearNF, setNF } = useNFStore.getState();
+          clearNF();
+          setNF(nfcNumber);
           clearCupom();
           setCupom({
             cupom,
@@ -146,7 +149,7 @@ export default function Page() {
       <h1 className="text-xl font-bold">Escaneie aqui o seu cupom</h1>
       <div className="flex flex-col gap-4">
         <div>
-          <p className="font-bold">Escaneie o QR code do cupom</p>
+          <h2 className="font-bold">Escaneie o QR code do cupom</h2>
           <Button className="flex w-full bg-primaria hover:bg-hover-primaria" onClick={handleOpenScanner}>
             {openScanner ? (
               <>
@@ -167,7 +170,7 @@ export default function Page() {
       </div>
       <div
         className={clsx({
-          "block absolute w-[363px] h-[328px] top-2": openScanner === true,
+          "block absolute w-[363px] h-[328px] top-6": openScanner === true,
           hidden: openScanner === false,
         })}
       >
@@ -199,6 +202,10 @@ export default function Page() {
           }}
         />
       </div>
+      {/* <div className="flex flex-col gap-4">
+        <h2 className="font-bold">Contulte seus números da sorte</h2>
+        <SearchNumbers />
+      </div> */}
     </div>
   );
 }

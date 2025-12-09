@@ -31,7 +31,6 @@ export function RegisterCupomContainer() {
         }),
       });
       const responseValue = await responseResult.json();
-      console.log(responseValue);
       if (!responseResult.ok) {
         if (responseValue?.message === "Valor do cupom não atingiu o valor mínimo para participar do sorteio.") {
           setModalInfo({
@@ -96,7 +95,7 @@ export function RegisterCupomContainer() {
         onSetOpen={handleSetOpen}
         open={open}
       />
-      <p className="font-bold">Cadastre as informações do cupom</p>
+      <h2 className="font-bold">Cadastre as informações do cupom</h2>
       <div className="mt-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(registerCupom)} className="flex flex-col gap-4">
@@ -107,7 +106,7 @@ export function RegisterCupomContainer() {
                 <FormItem>
                   <FormLabel>Número do Cupom *</FormLabel>
                   <FormControl>
-                    <Input placeholder="000000" {...field} />
+                    <Input type="number" placeholder="000000" {...field} required />
                   </FormControl>
                 </FormItem>
               )}
@@ -120,7 +119,7 @@ export function RegisterCupomContainer() {
                 <FormItem>
                   <FormLabel>Série *</FormLabel>
                   <FormControl>
-                    <Input type="text" placeholder="000" {...field} />
+                    <Input type="number" placeholder="000" {...field} required />
                   </FormControl>
                 </FormItem>
               )}
