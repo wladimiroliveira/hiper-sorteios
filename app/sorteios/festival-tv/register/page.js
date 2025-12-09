@@ -1,5 +1,6 @@
 import { Navbar } from "@/app/components/navbar";
 import { Register } from "@/app/components/register";
+import Image from "next/image";
 
 export default function Page() {
   return (
@@ -10,7 +11,13 @@ export default function Page() {
           <h2 className="font-bold text-xl mt-8">Cadastre-se abaixo</h2>
           <Register />
         </div>
-        <div className="max-w-[363px] w-[363px] h-[328px] bg-gray-200 rounded-sm mt-8 mb-8" />
+        <Image
+          className="bg-gray-200 w-[363px] h-[328px] mt-8 rounded-sm"
+          src="/art-image.jpg"
+          width={619}
+          height={560}
+          alt="Art festival tvs"
+        />
       </div>
     </div>
   );
