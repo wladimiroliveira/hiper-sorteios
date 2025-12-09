@@ -1,5 +1,6 @@
 "use client";
 
+import { Modal } from "@/app/components/modal";
 import { RegisterCupomContainer } from "@/app/components/registerCupom";
 import { Button } from "@/components/ui/button";
 import { useNFStore } from "@/store/nf-store";
@@ -7,6 +8,7 @@ import { useRafflesStore } from "@/store/raffles-store";
 import { IconCameraFilled, IconX } from "@tabler/icons-react";
 import { Scanner, useDevices } from "@yudiel/react-qr-scanner";
 import clsx from "clsx";
+import Image from "next/image";
 import { useState } from "react";
 
 export default function Page() {
@@ -14,6 +16,8 @@ export default function Page() {
 
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [openScanner, setOpenScanner] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [modalInfo, setModalInfo] = useState({});
 
   function handleOpenScanner() {
     if (openScanner === true) {
@@ -76,25 +80,33 @@ export default function Page() {
       const responseValue = await responseResult.json();
       if (!responseResult.ok) {
         if (responseValue?.message === "Valor do cupom não atingiu o valor mínimo para participar do sorteio.") {
-          console.log("Valor do cupom não atingiu o valor mínimo para participar do sorteio.");
           setModalInfo({
-            title: "Erro",
+            title: "Atenção",
             description: responseValue?.message,
           });
           setOpen(true);
         }
         if (responseValue?.message === "CPF não encontrado no cupom fiscal.") {
-          console.log("CPF não encontrado no cupom fiscal.");
           setModalInfo({
-            title: "Erro",
+            title: "Atenção",
+            description: responseValue?.message,
+          });
+          setOpen(true);
+        }
+        if (responseValue?.message === "Já existem rifas cadastradas para esse cupom") {
+          setModalInfo({
+            title: "Atenção",
             description: responseValue?.message,
           });
           setOpen(true);
         }
         if (responseValue?.message === "Cliente não encontrado no sistema") {
-          const { clearNF, setNF } = useNFStore.getState();
-          clearNF();
-          setNF(nfcNumber);
+          const { clearCupom, setCupom } = useCupomStore.getState();
+          clearCupom();
+          setCupom({
+            cupom,
+            serie,
+          });
           return router.push("festival-tvs/register");
         }
       }
@@ -110,9 +122,27 @@ export default function Page() {
     }
   }
 
+  function handleSetOpen(bool) {
+    setOpen(bool);
+  }
+
   return (
     <div className="flex flex-col align-items justify-center max-w-[363px] m-auto pt-8 pb-8 gap-4">
-      <div className="bg-gray-200 w-[363px] h-[328px] rounded-sm" />
+      <Modal
+        info={{
+          title: modalInfo?.title,
+          description: modalInfo?.description,
+        }}
+        onSetOpen={handleSetOpen}
+        open={open}
+      />
+      <Image
+        className="bg-gray-200 w-[363px] h-[328px] rounded-sm"
+        src="/art-image.jpg"
+        width={619}
+        height={560}
+        alt="Art festival tvs"
+      />
       <h1 className="text-xl font-bold">Escaneie aqui o seu cupom</h1>
       <div className="flex flex-col gap-4">
         <div>

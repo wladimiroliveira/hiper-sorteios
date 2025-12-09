@@ -1,12 +1,79 @@
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { IconSend } from "@tabler/icons-react";
 import { useForm } from "react-hook-form";
+import { Modal } from "./modal";
+import { useRafflesStore } from "@/store/raffles-store";
+import { useRouter } from "next/navigation";
+import { useCupomStore } from "@/store/cupom-store";
 
 export function RegisterCupomContainer() {
-  function registerCupom() {
-    console.log("teste");
+  const router = useRouter();
+  const [modalInfo, setModalInfo] = useState();
+  const [open, setOpen] = useState(false);
+
+  async function registerCupom(cupomInfo) {
+    const cupom = parseInt(cupomInfo.cupom);
+    const serie = parseInt(cupomInfo.serie);
+    try {
+      const responseResult = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffles`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nfc_number: cupom,
+          nfc_serie: serie,
+        }),
+      });
+      const responseValue = await responseResult.json();
+      console.log(responseValue);
+      if (!responseResult.ok) {
+        if (responseValue?.message === "Valor do cupom não atingiu o valor mínimo para participar do sorteio.") {
+          setModalInfo({
+            title: "Atenção",
+            description: responseValue?.message,
+          });
+          setOpen(true);
+        }
+        if (responseValue?.message === "CPF não encontrado no cupom fiscal.") {
+          setModalInfo({
+            title: "Atenção",
+            description: responseValue?.message,
+          });
+          setOpen(true);
+        }
+        if (responseValue?.message === "Já existem rifas cadastradas para esse cupom") {
+          setModalInfo({
+            title: "Atenção",
+            description: responseValue?.message,
+          });
+          setOpen(true);
+        }
+        if (responseValue?.message === "Cliente não encontrado no sistema") {
+          const { clearCupom, setCupom } = useCupomStore.getState();
+          clearCupom();
+          setCupom({
+            cupom,
+            serie,
+          });
+          return router.push("festival-tvs/register");
+        }
+      }
+      if (responseResult.ok) {
+        const { clearRaffles, setRaffles } = useRafflesStore.getState();
+        clearRaffles();
+        setRaffles(responseValue);
+        return router.push(`festival-tvs/register`);
+      }
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
   }
 
   const form = useForm({
@@ -15,8 +82,20 @@ export function RegisterCupomContainer() {
       serie: "",
     },
   });
+
+  function handleSetOpen(bool) {
+    setOpen(bool);
+  }
   return (
     <div>
+      <Modal
+        info={{
+          title: modalInfo?.title,
+          description: modalInfo?.description,
+        }}
+        onSetOpen={handleSetOpen}
+        open={open}
+      />
       <p className="font-bold">Cadastre as informações do cupom</p>
       <div className="mt-4">
         <Form {...form}>

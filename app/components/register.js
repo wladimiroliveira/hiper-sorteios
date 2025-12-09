@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { useNFStore } from "@/store/nf-store";
 import { useRafflesStore } from "@/store/raffles-store";
+import { useCupomStore } from "@/store/cupom-store";
 import { useRouter } from "next/navigation";
 
 export function Register() {
   const { nf, clearNF, setNF } = useNFStore();
+  const { cupom, clearCupom, setCupom } = useCupomStore();
   const { clearRaffles, setRaffles } = useRafflesStore();
   const router = useRouter();
 
@@ -25,6 +27,7 @@ export function Register() {
   async function createUser(data) {
     console.log("Dados enviados: ", data);
     console.log("NF armazenada: ", nf);
+    console.log("Cupom armazenado: ", cupom);
 
     // 1️⃣ Criar cliente
     const clientRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffle-clients`, {
@@ -44,7 +47,7 @@ export function Register() {
     const raffleRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffles`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nfc_key: nf }),
+      body: JSON.stringify({ nfc_key: nf ? nf : "", nfc_number: Number(cupom.cupom), nfc_serie: Number(cupom.serie) }),
     });
 
     const raffleData = await raffleRes.json();
