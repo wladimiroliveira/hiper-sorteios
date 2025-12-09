@@ -30,7 +30,7 @@ export function Register() {
     console.log("Cupom armazenado: ", cupom);
 
     // 1️⃣ Criar cliente
-    const clientRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffle-clients`, {
+    const clientRes = await fetch(`https://api.hipersenna.com/raffle-clients`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -44,7 +44,7 @@ export function Register() {
     }
 
     // 2️⃣ Criar rifa
-    const raffleRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffles`, {
+    const raffleRes = await fetch(`https://api.hipersenna.com/raffles`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ nfc_key: nf ? nf : "", nfc_number: Number(cupom.cupom), nfc_serie: Number(cupom.serie) }),

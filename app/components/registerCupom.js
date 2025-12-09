@@ -20,7 +20,10 @@ export function RegisterCupomContainer() {
     const cupom = parseInt(cupomInfo.cupom);
     const serie = parseInt(cupomInfo.serie);
     try {
-      const responseResult = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffles`, {
+      console.log(process.env.NODE_ENV);
+      console.log(process.env.NEXT_PUBLIC_API_URL);
+      console.log(process.env.API_URL);
+      const responseResult = await fetch(`https://api.hipersenna.com/raffles`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -61,14 +64,14 @@ export function RegisterCupomContainer() {
             cupom,
             serie,
           });
-          return router.push("festival-tvs/register");
+          return router.push("/sorteios/festival-tv/register");
         }
       }
       if (responseResult.ok) {
         const { clearRaffles, setRaffles } = useRafflesStore.getState();
         clearRaffles();
         setRaffles(responseValue);
-        return router.push(`festival-tvs/register`);
+        return router.push(`/sorteios/festival-tv/success`);
       }
     } catch (err) {
       console.error(err);

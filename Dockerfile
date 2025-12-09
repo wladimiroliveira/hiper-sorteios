@@ -23,6 +23,6 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
 COPY --from=builder /app/package.json ./package.json
 
-EXPOSE 3000:8080
+EXPOSE 3000
 
 CMD ["npm", "start"]

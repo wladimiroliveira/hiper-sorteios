@@ -8,6 +8,7 @@ import { useRafflesStore } from "@/store/raffles-store";
 import { IconCameraFilled, IconX } from "@tabler/icons-react";
 import { Scanner, useDevices } from "@yudiel/react-qr-scanner";
 import clsx from "clsx";
+import { redirect } from "next/navigation";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -56,6 +57,9 @@ export default function Page() {
 
   async function createRaffle(scanResult) {
     try {
+      console.log(process.env.NODE_ENV);
+      console.log(process.env.NEXT_PUBLIC_API_URL);
+      console.log(process.env.API_URL);
       const regex = /p=([^|]+)/;
       console.log(scanResult);
       const match = scanResult[0].rawValue.match(regex);
@@ -68,7 +72,7 @@ export default function Page() {
       } else {
         throw new Error("Não foi possível extrair o valor.");
       }
-      const responseResult = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffles`, {
+      const responseResult = await fetch(`https://api.hipersenna.com/raffles`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -102,19 +106,22 @@ export default function Page() {
         }
         if (responseValue?.message === "Cliente não encontrado no sistema") {
           const { clearCupom, setCupom } = useCupomStore.getState();
+          const { clearNF, setNF } = useNFStore.getState();
+          clearNF();
+          setNF(nfcNumber);
           clearCupom();
           setCupom({
             cupom,
             serie,
           });
-          return router.push("festival-tvs/register");
+          return redirect("/register");
         }
       }
       if (responseResult.ok) {
         const { clearRaffles, setRaffles } = useRafflesStore.json();
         clearRaffles();
         setRaffles(responseValue);
-        return router.push(`festival-tvs/register`);
+        return redirect("/success ");
       }
     } catch (err) {
       console.error(err);
@@ -167,7 +174,7 @@ export default function Page() {
       </div>
       <div
         className={clsx({
-          "block absolute w-[363px] h-[328px] top-2": openScanner === true,
+          "block absolute w-[363px] h-[328px] top-6": openScanner === true,
           hidden: openScanner === false,
         })}
       >
