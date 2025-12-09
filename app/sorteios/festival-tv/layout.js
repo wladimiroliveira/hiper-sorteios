@@ -15,6 +15,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR">
+      <link rel="icon" href="/favicon.ico" sizes="any" />
       <body className={`${roboto.className} antialiased`}>{children}</body>
     </html>
   );
