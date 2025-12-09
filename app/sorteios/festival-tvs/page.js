@@ -1,169 +1,73 @@
 "use client";
 
-import { Navbar } from "@/app/components/navbar";
-import { Scanner } from "@/app/components/scanner";
-import { Html5Qrcode } from "html5-qrcode";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useRafflesStore } from "@/store/raffles-store";
-import { useNFStore } from "@/store/nf-store";
 import { Modal } from "@/app/components/modal";
+import { RegisterCupomContainer } from "@/app/components/registerCupom";
+import { Button } from "@/components/ui/button";
+import { useNFStore } from "@/store/nf-store";
+import { useRafflesStore } from "@/store/raffles-store";
+import { IconCameraFilled, IconX } from "@tabler/icons-react";
+import { Scanner, useDevices } from "@yudiel/react-qr-scanner";
+import clsx from "clsx";
+import Image from "next/image";
+import { useState } from "react";
 
-export default function Home() {
-  const router = useRouter();
+export default function Page() {
+  const devices = useDevices();
 
-  const [scanResult, setScanResult] = useState(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const [scanner, setScanner] = useState(null);
-  const [stream, setStream] = useState(null);
-  const [showPhotoOption, setShowPhotoOption] = useState(false);
-  const [imageCapture, setImageCapture] = useState(null);
-  const [nfcNumber, setNfcNumber] = useState("");
+  const [selectedDevice, setSelectedDevice] = useState(null);
+  const [openScanner, setOpenScanner] = useState(false);
   const [open, setOpen] = useState(false);
   const [modalInfo, setModalInfo] = useState({});
 
-  async function getBestBackCamera() {
-    const cameras = await Html5Qrcode.getCameras();
-    if (!cameras || cameras.length === 0) return null;
-
-    const norm = (str) => str.toLowerCase();
-
-    let wide = cameras.find((cam) => norm(cam.label).includes("wide") || norm(cam.label).includes("main"));
-    if (wide) return wide.id;
-
-    let backs = cameras.filter(
-      (cam) =>
-        norm(cam.label).includes("back") || norm(cam.label).includes("rear") || norm(cam.label).includes("traseira"),
-    );
-
-    if (backs.length > 1) {
-      let mainBack = backs.find((cam) => norm(cam.label).includes("main") || norm(cam.label).includes("wide"));
-      if (mainBack) return mainBack.id;
+  function handleOpenScanner() {
+    if (openScanner === true) {
+      setOpenScanner(false);
+      return;
     }
-
-    if (backs.length === 1) return backs[0].id;
-
-    return cameras[0].id;
+    setOpenScanner(true);
   }
 
-  // --------------------------
-  //   ABRIR SCANNER + STREAM
-  // --------------------------
-  async function openScanner() {
-    setIsOpen(true);
-    setShowPhotoOption(false);
-
-    const cameraId = await getBestBackCamera();
-
-    const html5QrCode = new Html5Qrcode("full-screen-scanner");
-    setScanner(html5QrCode);
-
-    // Iniciar stream manualmente para permitir IMAGECAPTURE
-    const videoStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        deviceId: { exact: cameraId },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-        focusMode: "continuous",
-      },
+  const handleScan = (detectedCodes) => {
+    console.log("Detected codes:", detectedCodes);
+    // detectedCodes is an array of IDetectedBarcode objects
+    detectedCodes.forEach((code) => {
+      console.log(`Format: ${code.format}, Value: ${code.rawValue}`);
     });
+  };
 
-    setStream(videoStream);
+  const highlightCodeOnCanvas = (detectedCodes, ctx) => {
+    detectedCodes.forEach((detectedCode) => {
+      const { boundingBox, cornerPoints } = detectedCode;
 
-    // Criar ImageCapture com foco contínuo
-    const track = videoStream.getVideoTracks()[0];
-    const imgCap = new ImageCapture(track);
-    setImageCapture(imgCap);
+      // Draw bounding box
+      ctx.strokeStyle = "#00FF00";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
 
-    try {
-      const capabilities = await imgCap.getPhotoCapabilities();
-      if (capabilities.focusMode.includes("continuous")) {
-        await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
-      }
-    } catch (err) {
-      console.warn("Foco automático não suportado.", err);
-    }
-
-    // Iniciar scanner usando o stream manual
-    html5QrCode.start(
-      { deviceId: { exact: cameraId } },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      (decodedText) => {
-        closeScanner();
-        setScanResult(decodedText);
-      },
-      () => {},
-    );
-
-    // Após 20 segundos, mostrar opção de tirar foto
-    setTimeout(() => {
-      setShowPhotoOption(true);
-    }, 20000);
-  }
-
-  // --------------------------
-  //      FECHAR SCANNER
-  // --------------------------
-  function closeScanner() {
-    if (scanner) scanner.stop().catch(() => {});
-    if (stream) stream.getTracks().forEach((t) => t.stop());
-    setIsOpen(false);
-  }
-
-  // --------------------------
-  //     TIRAR FOTO COM FOCO
-  // --------------------------
-  async function takePhotoAndRead() {
-    if (!imageCapture) return alert("Erro: ImageCapture não disponível.");
-
-    try {
-      const blob = await imageCapture.takePhoto();
-
-      const bitmap = await createImageBitmap(blob);
-      const canvas = document.createElement("canvas");
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(bitmap, 0, 0);
-
-      const dataUrl = canvas.toDataURL("image/png");
-
-      // Ler QR usando método interno
-      const result = await Html5Qrcode.scanImage(dataUrl, false);
-
-      closeScanner();
-      setScanResult(result);
-    } catch (err) {
-      alert("Não foi possível ler o QR code da foto.");
-      setModalInfo({
-        title: "Erro",
-        description: "Não foi possível ler o QR code da foto.",
+      // Draw corner points
+      ctx.fillStyle = "#FF0000";
+      cornerPoints.forEach((point) => {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+        ctx.fill();
       });
-      setOpen(true);
-    }
-  }
+    });
+  };
 
-  // =====================================================
-  //         6) EXTRAIR VALOR DO CÓDIGO
-  // =====================================================
-  useEffect(() => {
-    if (!scanResult) return;
-
-    const regex = /p=([^|]+)/;
-    const match = scanResult.match(regex);
-
-    if (match?.[1]) {
-      const extractedValue = match[1];
-      setNfcNumber(extractedValue);
-      console.log("Valor extraído:", extractedValue);
-    } else {
-      console.log("Não foi possível extrair o valor.");
-    }
-  }, [scanResult]);
-
-  async function createRaffle() {
+  async function createRaffle(scanResult) {
     try {
+      const regex = /p=([^|]+)/;
+      console.log(scanResult);
+      const match = scanResult[0].rawValue.match(regex);
+      let nfcNumber;
+
+      if (match?.[1]) {
+        const extractedValue = match[1];
+        nfcNumber = extractedValue;
+        console.log("Valor extraído:", extractedValue);
+      } else {
+        throw new Error("Não foi possível extrair o valor.");
+      }
       const responseResult = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffles`, {
         method: "POST",
         headers: {
@@ -176,25 +80,33 @@ export default function Home() {
       const responseValue = await responseResult.json();
       if (!responseResult.ok) {
         if (responseValue?.message === "Valor do cupom não atingiu o valor mínimo para participar do sorteio.") {
-          console.log("Valor do cupom não atingiu o valor mínimo para participar do sorteio.");
           setModalInfo({
-            title: "Erro",
+            title: "Atenção",
             description: responseValue?.message,
           });
           setOpen(true);
         }
         if (responseValue?.message === "CPF não encontrado no cupom fiscal.") {
-          console.log("CPF não encontrado no cupom fiscal.");
           setModalInfo({
-            title: "Erro",
+            title: "Atenção",
+            description: responseValue?.message,
+          });
+          setOpen(true);
+        }
+        if (responseValue?.message === "Já existem rifas cadastradas para esse cupom") {
+          setModalInfo({
+            title: "Atenção",
             description: responseValue?.message,
           });
           setOpen(true);
         }
         if (responseValue?.message === "Cliente não encontrado no sistema") {
-          const { clearNF, setNF } = useNFStore.getState();
-          clearNF();
-          setNF(nfcNumber);
+          const { clearCupom, setCupom } = useCupomStore.getState();
+          clearCupom();
+          setCupom({
+            cupom,
+            serie,
+          });
           return router.push("festival-tvs/register");
         }
       }
@@ -214,11 +126,8 @@ export default function Home() {
     setOpen(bool);
   }
 
-  // =====================================================
-  //                   7) RENDER
-  // =====================================================
   return (
-    <div className="flex flex-col items-center pt-8 pb-8">
+    <div className="flex flex-col align-items justify-center max-w-[363px] m-auto pt-8 pb-8 gap-4">
       <Modal
         info={{
           title: modalInfo?.title,
@@ -227,47 +136,69 @@ export default function Home() {
         onSetOpen={handleSetOpen}
         open={open}
       />
-      <div className="flex flex-col items-center max-w-[363px]">
-        <Navbar />
-
-        <div className="max-w-[363px] w-[363px] h-[328px] bg-gray-200 rounded-sm mt-8 mb-8" />
-
-        <div className="w-full">
-          <h2 className="font-bold text-xl mb-4">Escaneie aqui o seu cupom</h2>
-
-          <Scanner openScanner={openScanner} sendNfc={createRaffle} nfcNumber={nfcNumber} />
+      <Image
+        className="bg-gray-200 w-[363px] h-[328px] rounded-sm"
+        src="/art-image.jpg"
+        width={619}
+        height={560}
+        alt="Art festival tvs"
+      />
+      <h1 className="text-xl font-bold">Escaneie aqui o seu cupom</h1>
+      <div className="flex flex-col gap-4">
+        <div>
+          <p className="font-bold">Escaneie o QR code do cupom</p>
+          <Button className="flex w-full bg-primaria hover:bg-hover-primaria" onClick={handleOpenScanner}>
+            {openScanner ? (
+              <>
+                <IconX />
+                Fechar scanner
+              </>
+            ) : (
+              <>
+                <IconCameraFilled /> Abrir scanner
+              </>
+            )}
+          </Button>
+        </div>
+        <span className="italic text-gray-400">ou</span>
+        <div>
+          <RegisterCupomContainer />
         </div>
       </div>
-
-      {/* OVERLAY */}
-      {isOpen && (
-        <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center">
-          <button className="absolute top-4 right-4 bg-white text-black px-3 py-1 rounded" onClick={closeScanner}>
-            Fechar
-          </button>
-
-          {/* container usado pelo html5-qrcode */}
-          <div id="full-screen-scanner" className="absolute inset-0 w-screen h-screen"></div>
-
-          <div
-            className="absolute border-4 border-green-400 rounded-xl"
-            style={{
-              width: "260px",
-              height: "260px",
-              pointerEvents: "none",
-            }}
-          ></div>
-
-          {showPhotoOption && (
-            <button
-              onClick={takePhotoAndRead}
-              className="absolute bottom-10 bg-white text-black px-5 py-3 rounded-full shadow-lg flex flex-col items-center gap-1"
-            >
-              📷 Tirar Foto
-            </button>
-          )}
-        </div>
-      )}
+      <div
+        className={clsx({
+          "block absolute w-[363px] h-[328px] top-2": openScanner === true,
+          hidden: openScanner === false,
+        })}
+      >
+        <select onChange={(e) => setSelectedDevice(e.target.value)}>
+          <option value="">Select a camera</option>
+          {devices.map((device) => (
+            <option key={device.deviceId} value={device.deviceId}>
+              {device.label || `Camera ${device.deviceId}`}
+            </option>
+          ))}
+        </select>
+        <Scanner
+          onScan={(result) => createRaffle(result)}
+          constraints={{
+            deviceId: selectedDevice,
+          }}
+          components={{
+            audio: true, // Play beep sound on scan
+            onOff: true, // Show camera on/off button
+            torch: true, // Show torch/flashlight button (if supported)
+            zoom: true, // Show zoom control (if supported)
+            finder: true, // Show finder overlay
+            tracker: highlightCodeOnCanvas,
+            facingMode: "environment", // Use rear camera
+            aspectRatio: 1, // Square aspect ratio
+            // Advanced constraints
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          }}
+        />
+      </div>
     </div>
   );
 }
