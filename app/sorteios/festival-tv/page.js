@@ -3,12 +3,9 @@
 import { Modal } from "@/app/components/modal";
 import { RegisterCupomContainer } from "@/app/components/registerCupom";
 import { Button } from "@/components/ui/button";
-import { useNFStore } from "@/store/nf-store";
-import { useRafflesStore } from "@/store/raffles-store";
 import { IconCameraFilled, IconX } from "@tabler/icons-react";
 import { Scanner, useDevices } from "@yudiel/react-qr-scanner";
 import clsx from "clsx";
-import { redirect } from "next/navigation";
 import Image from "next/image";
 import { useState } from "react";
 import { SearchNumbers } from "@/app/components/searchNumbers";
@@ -57,72 +54,12 @@ export default function Page() {
     });
   };
 
-  async function createRaffle(scanResult) {
-    try {
-      console.log(process.env.NODE_ENV);
-      console.log(process.env.NEXT_PUBLIC_API_URL);
-      console.log(process.env.API_URL);
-      const regex = /p=([^|]+)/;
-      console.log(scanResult);
-      const match = scanResult[0].rawValue.match(regex);
-      let nfcNumber;
-
-      if (match?.[1]) {
-        const extractedValue = match[1];
-        nfcNumber = extractedValue;
-        console.log("Valor extraído:", extractedValue);
-      } else {
-        throw new Error("Não foi possível extrair o valor.");
-      }
-      const responseResult = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffles`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          nfc_key: nfcNumber,
-        }),
-      });
-      const responseValue = await responseResult.json();
-      if (!responseResult.ok) {
-        if (responseValue.message) {
-          setModalInfo({
-            title: "Atenção",
-            description: responseValue.message,
-          });
-          setOpen(true);
-        }
-        if (responseValue?.message === "Cliente não encontrado no sistema") {
-          const { clearCupom, setCupom } = useCupomStore.getState();
-          const { clearNF, setNF } = useNFStore.getState();
-          clearNF();
-          setNF(nfcNumber);
-          clearCupom();
-          setCupom({
-            cupom,
-            serie,
-          });
-          return redirect("/register");
-        }
-      }
-      if (responseResult.ok) {
-        const { clearRaffles, setRaffles } = useRafflesStore.json();
-        clearRaffles();
-        setRaffles(responseValue);
-        return redirect("/success ");
-      }
-    } catch (err) {
-      console.error(err);
-      throw err;
-    }
-  }
-
   function handleSetOpen(bool) {
     setOpen(bool);
   }
 
   return (
-    <div className="flex flex-col align-items justify-center max-w-[363px] m-auto pb-8 gap-8">
+    <div className="flex flex-col align-items justify-center max-w-[363px] m-auto pb-8 pl-4 pr-4 gap-8">
       <Modal
         info={{
           title: modalInfo?.title,

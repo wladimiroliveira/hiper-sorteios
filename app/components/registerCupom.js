@@ -1,81 +1,56 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { useRouter, usePathname } from "next/navigation";
+
+import { createRaffleModel } from "@/app/components/models/createRaffle.model";
+
+import { useCupomStore } from "@/store/cupom.store";
+import { useRafflesStore } from "@/store/raffles.store";
+
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { IconSend } from "@tabler/icons-react";
-import { useForm } from "react-hook-form";
-import { Modal } from "./modal";
-import { useRafflesStore } from "@/store/raffles-store";
-import { useRouter } from "next/navigation";
-import { useCupomStore } from "@/store/cupom-store";
+
+import { Modal } from "@/app/components/modal";
 
 export function RegisterCupomContainer() {
+  //React Hooks
   const router = useRouter();
+  const pathname = usePathname();
   const [modalInfo, setModalInfo] = useState();
   const [open, setOpen] = useState(false);
 
-  async function registerCupom(cupomInfo) {
-    const cupom = parseInt(cupomInfo.cupom);
-    const serie = parseInt(cupomInfo.serie);
-    try {
-      console.log(process.env.NODE_ENV);
-      console.log(process.env.NEXT_PUBLIC_API_URL);
-      console.log(process.env.API_URL);
-      const responseResult = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffles`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          nfc_number: cupom,
-          nfc_serie: serie,
-        }),
+  // Zustand Stores
+  const { setCupom, clearCupom } = useCupomStore();
+  const { setRaffles, clearRaffles } = useRafflesStore();
+
+  // Handle Functions
+  function handleSetOpen(bool) {
+    setOpen(bool);
+  }
+
+  async function handleCreateRaffle(data) {
+    const createRaffleResult = await createRaffleModel(data);
+    // console.log(createRaffleResult);
+    if (!createRaffleResult.ok && createRaffleResult.message) {
+      if (createRaffleResult.message === "Cliente não encontrado no sistema") {
+        clearCupom();
+        setCupom(data);
+        return router.push("../sorteios/festival-tv/register");
+      }
+      setModalInfo({
+        title: "Atenção",
+        description: createRaffleResult.message,
       });
-      const responseValue = await responseResult.json();
-      console.log(responseValue);
-      if (!responseResult.ok) {
-        if (responseValue?.message === "Valor do cupom não atingiu o valor mínimo para participar do sorteio.") {
-          setModalInfo({
-            title: "Atenção",
-            description: responseValue?.message,
-          });
-          setOpen(true);
-        }
-        if (responseValue?.message === "CPF não encontrado no cupom fiscal.") {
-          setModalInfo({
-            title: "Atenção",
-            description: responseValue?.message,
-          });
-          setOpen(true);
-        }
-        if (responseValue?.message === "Já existem rifas cadastradas para esse cupom") {
-          setModalInfo({
-            title: "Atenção",
-            description: responseValue?.message,
-          });
-          setOpen(true);
-        }
-        if (responseValue?.message === "Cliente não encontrado no sistema") {
-          const { clearCupom, setCupom } = useCupomStore.getState();
-          clearCupom();
-          setCupom({
-            cupom,
-            serie,
-          });
-          return router.push("/sorteios/festival-tv/register");
-        }
-      }
-      if (responseResult.ok) {
-        const { clearRaffles, setRaffles } = useRafflesStore.getState();
-        clearRaffles();
-        setRaffles(responseValue);
-        return router.push(`/sorteios/festival-tv/success`);
-      }
-    } catch (err) {
-      console.error(err);
-      throw err;
+      setOpen(true);
+    }
+    if (createRaffleResult.ok) {
+      clearRaffles();
+      setRaffles(createRaffleResult?.raffles);
+      return router.push("../sorteios/festival-tv/success");
     }
   }
 
@@ -86,9 +61,6 @@ export function RegisterCupomContainer() {
     },
   });
 
-  function handleSetOpen(bool) {
-    setOpen(bool);
-  }
   return (
     <div>
       <Modal
@@ -102,7 +74,7 @@ export function RegisterCupomContainer() {
       <p className="font-bold">Cadastre as informações do cupom</p>
       <div className="mt-4">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(registerCupom)} className="flex flex-col gap-4">
+          <form onSubmit={form.handleSubmit(handleCreateRaffle)} className="flex flex-col gap-4">
             <FormField
               control={form.control}
               name="cupom"

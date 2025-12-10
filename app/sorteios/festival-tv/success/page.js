@@ -2,12 +2,13 @@
 
 import { Navbar } from "@/app/components/navbar";
 import { TimelineContainer } from "@/app/components/timeline";
-import { useRafflesStore } from "@/store/raffles-store";
+import { useRafflesStore } from "@/store/raffles.store";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function Page() {
   const { raffles } = useRafflesStore();
+  console.log(raffles);
   const [numsGerados, setNumsGerados] = useState([]);
 
   useEffect(() => {
@@ -18,7 +19,7 @@ export default function Page() {
   }, [raffles]);
 
   return (
-    <div className="flex flex-col items-center pt-8 pb-8">
+    <div className="flex flex-col items-center pl-4 pt-8 pr-4 pb-8">
       <div className="flex flex-col items-center max-w-[393px]">
         <Navbar />
         <div className="flex flex-col gap-8 w-full">

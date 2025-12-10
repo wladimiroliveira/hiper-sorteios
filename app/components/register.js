@@ -1,23 +1,30 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { IconSend } from "@tabler/icons-react";
-import { Input } from "@/components/ui/input";
-import { useForm } from "react-hook-form";
-import { useNFStore } from "@/store/nf-store";
-import { useRafflesStore } from "@/store/raffles-store";
-import { useCupomStore } from "@/store/cupom-store";
-import { useRouter } from "next/navigation";
-import { Modal } from "./modal";
+// React & Next hooks
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
+
+// Interface
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { IconSend } from "@tabler/icons-react";
+import { Modal } from "@/app/components/modal";
+
+// Models
+import { createRaffleModel } from "@/app/components/models/createRaffle.model";
+
+// Local Storage
+import { useRafflesStore } from "@/store/raffles.store";
+import { useCupomStore } from "@/store/cupom.store";
 
 export function Register() {
-  const { nf, clearNF, setNF } = useNFStore();
   const { cupom, clearCupom, setCupom } = useCupomStore();
   const { clearRaffles, setRaffles } = useRafflesStore();
   const [open, setOpen] = useState(false);
   const [modalInfo, setModalInfo] = useState({});
+
   const router = useRouter();
 
   const form = useForm({
@@ -28,11 +35,7 @@ export function Register() {
     },
   });
 
-  async function createUser(data) {
-    console.log("Dados enviados: ", data);
-    console.log("NF armazenada: ", nf);
-    console.log("Cupom armazenado: ", cupom);
-
+  async function handleCreateUser(data) {
     // 1️⃣ Criar cliente
     const clientRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffle-clients`, {
       method: "POST",
@@ -53,40 +56,33 @@ export function Register() {
       return;
     }
 
-    // 2️⃣ Criar rifa
-    const raffleRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffles`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nfc_key: nf ? nf : "", nfc_number: Number(cupom.cupom), nfc_serie: Number(cupom.serie) }),
-    });
-
-    const raffleData = await raffleRes.json();
-
-    if (!raffleRes.ok) {
-      if (raffleData?.message === "Cliente não encontrado no sistema") {
-        clearNF();
-        setNF(nf);
-        return router.push("/festival-tvs/register");
-      }
-      if (raffleData.message) {
-        if (clientData.message) {
+    async function handleCreateRaffle(raffleData) {
+      const createRaffleResult = await createRaffleModel(raffleData);
+      if (!createRaffleResult.ok && createRaffleResult.message) {
+        if (createRaffleResult.message === "Cliente não encontrado no sistema") {
           setModalInfo({
             title: "Atenção",
-            description: clientData?.message,
+            description:
+              "O cpf cadastrado no sistema, diverge do CPF fornecido no momento da compra, favor, confira o CPF presente no cupom fiscal...",
           });
           setOpen(true);
+          clearCupom();
+          setCupom(raffleData);
         }
+        setModalInfo({
+          title: "Atenção",
+          description: createRaffleResult.message,
+        });
+        setOpen(true);
       }
-
-      console.error(raffleData?.message);
-      return;
+      if (createRaffleResult.ok) {
+        clearRaffles();
+        setRaffles(createRaffleResult?.raffles);
+        return router.push("../festival-tv/success");
+      }
     }
 
-    // 3️⃣ Salvar dados da rifa e redirecionar
-    clearRaffles();
-    setRaffles(raffleData);
-
-    return router.push("success");
+    handleCreateRaffle(cupom);
   }
 
   function handleSetOpen(bool) {
@@ -104,7 +100,7 @@ export function Register() {
         open={open}
       />
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(createUser)} className="flex flex-col gap-4">
+        <form onSubmit={form.handleSubmit(handleCreateUser)} className="flex flex-col gap-4">
           <FormField
             control={form.control}
             name="name"
@@ -112,7 +108,7 @@ export function Register() {
               <FormItem>
                 <FormLabel>Nome completo *</FormLabel>
                 <FormControl>
-                  <Input placeholder="nome completo..." {...field} required />
+                  <Input placeholder="Nome completo..." type="text" {...field} required />
                 </FormControl>
               </FormItem>
             )}
@@ -125,7 +121,7 @@ export function Register() {
               <FormItem>
                 <FormLabel>CPF *</FormLabel>
                 <FormControl>
-                  <Input type="text" placeholder="000.000.000-00" {...field} required />
+                  <Input type="cpf" placeholder="000.000.000-00" {...field} required />
                 </FormControl>
               </FormItem>
             )}
@@ -138,7 +134,7 @@ export function Register() {
               <FormItem>
                 <FormLabel>N° Telefone *</FormLabel>
                 <FormControl>
-                  <Input type="text" placeholder="(00) 0 0000-0000" {...field} required />
+                  <Input type="number" placeholder="(00) 0 0000-0000" {...field} required />
                 </FormControl>
               </FormItem>
             )}

@@ -6,7 +6,7 @@ export function TimelineContainer({ dates }) {
     month: "2-digit",
   });
   return (
-    <div className="flex gap-4 justify-center">
+    <div className="flex flex-wrap gap-4 justify-center">
       {dates.map((date) => {
         return <TimelineCard key={date} date={date} currentDate={currentDate} />;
       })}

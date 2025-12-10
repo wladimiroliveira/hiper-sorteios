@@ -1,7 +1,7 @@
 "use client";
 
-import { useNFStore } from "@/store/nf-store";
-import { useRafflesStore } from "@/store/raffles-store";
+import { useNFStore } from "@/store/nf.store";
+import { useRafflesStore } from "@/store/raffles.store";
 import { useRouter } from "next/navigation";
 
 export async function createRaffle(nfcNumber) {
