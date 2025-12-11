@@ -4,7 +4,7 @@ import Image from "next/image";
 
 export default function Page() {
   return (
-    <div className="flex flex-col items-center pt-8 pb-8">
+    <div className="flex flex-col items-center pt-8 pl-4 pr-4 pb-8">
       <div className="flex flex-col items-center max-w-[393px]">
         <Navbar />
         <div className="w-full">

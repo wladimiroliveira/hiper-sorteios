@@ -19,7 +19,6 @@ import { Modal } from "@/app/components/modal";
 export function RegisterCupomContainer() {
   //React Hooks
   const router = useRouter();
-  const pathname = usePathname();
   const [modalInfo, setModalInfo] = useState();
   const [open, setOpen] = useState(false);
 
