@@ -20,10 +20,12 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "html5-qrcode": "^2.3.8",
+    "motion": "^12.23.26",
     "next": "^16.0.7",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-hook-form": "^7.68.0",
+    "react-input-mask": "^2.0.4",
     "tailwind-merge": "^3.4.0",
     "zod": "^4.1.13",
     "zustand": "^5.0.9"

@@ -19,7 +19,7 @@ import { createRaffleModel } from "@/app/components/models/createRaffle.model";
 import { useRafflesStore } from "@/store/raffles.store";
 import { useCupomStore } from "@/store/cupom.store";
 
-export function Register() {
+export function Register({ onLoading }) {
   const { cupom, clearCupom, setCupom } = useCupomStore();
   const { clearRaffles, setRaffles } = useRafflesStore();
   const [open, setOpen] = useState(false);
@@ -57,9 +57,11 @@ export function Register() {
     }
 
     async function handleCreateRaffle(raffleData) {
+      onLoading(true);
       const createRaffleResult = await createRaffleModel(raffleData);
       if (!createRaffleResult.ok && createRaffleResult.message) {
         if (createRaffleResult.message === "Cliente não encontrado no sistema") {
+          onLoading(false);
           setModalInfo({
             title: "Atenção",
             description:

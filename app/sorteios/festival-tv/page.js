@@ -1,17 +1,41 @@
 "use client";
 
-import { RegisterCupomContainer } from "@/app/components/registerCupom";
 import Image from "next/image";
+import { RegisterCupomContainer } from "@/app/components/registerCupom";
 import { SearchNumbers } from "@/app/components/searchNumbers";
 import { Navbar } from "@/app/components/navbar";
 import { ScannerModel } from "@/app/components/models/scanner.model";
+import { useState } from "react";
+import clsx from "clsx";
+import LoadingThreeDotsJumping from "@/app/components/animations/jumpingDots.animations";
 
 export default function Page() {
+  const [openScanner, setOpenScanner] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  function handleOpenScanner(bool) {
+    setOpenScanner(bool);
+  }
+
+  function handleStartLoading(bool) {
+    setLoading(bool);
+  }
+
   return (
     <div className="flex flex-col align-items justify-center max-w-[363px] m-auto pt-8 pb-8 pl-4 pr-4 gap-8">
+      <div
+        className={clsx("flex fixed h-full w-full bg-gray-400/50 backdrop-blur-sm left-0 top-0 transition-all", {
+          "opacity-0 pointer-events-none": !loading,
+          "opacity-100 pointer-events-auto": loading,
+        })}
+      >
+        <LoadingThreeDotsJumping />
+      </div>
       <Navbar />
       <Image
-        className="w-[363px] h-[328px] rounded-sm"
+        className={clsx("w-[363px] h-[328px] rounded-sm", {
+          hidden: openScanner,
+        })}
         src="/art-image.jpg"
         width={619}
         height={560}
@@ -20,11 +44,11 @@ export default function Page() {
       <h1 className="text-xl font-bold">Escaneie aqui o seu cupom</h1>
       <div className="flex flex-col gap-4">
         <div>
-          <ScannerModel />
+          <ScannerModel openScanner={openScanner} onOpenScanner={handleOpenScanner} onLoading={handleStartLoading} />
         </div>
         <span className="italic text-gray-400">ou</span>
         <div>
-          <RegisterCupomContainer />
+          <RegisterCupomContainer onLoading={handleStartLoading} />
         </div>
       </div>
       <div className="flex flex-col gap-4">

@@ -9,11 +9,10 @@ import { Button } from "@/components/ui/button";
 import { IconCameraFilled, IconX } from "@tabler/icons-react";
 import clsx from "clsx";
 
-export function ScannerModel() {
+export function ScannerModel({ openScanner, onOpenScanner, onLoading }) {
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [modalInfo, setModalInfo] = useState({});
   const [open, setOpen] = useState(false);
-  const [openScanner, setOpenScanner] = useState(false);
 
   function handleSetOpen(bool) {
     setOpen(bool);
@@ -21,10 +20,10 @@ export function ScannerModel() {
 
   function handleOpenScanner() {
     if (openScanner === true) {
-      setOpenScanner(false);
+      onOpenScanner(false);
       return;
     }
-    setOpenScanner(true);
+    onOpenScanner(true);
   }
 
   const highlightCodeOnCanvas = (detectedCodes, ctx) => {
@@ -47,6 +46,7 @@ export function ScannerModel() {
   const devices = useDevices();
 
   async function handleCreateRaffle(data) {
+    onLoading(true);
     const dataValue = Regex(/p=([^|]+)/, data[0].rawValue);
     const createRaffleResult = await createRaffleModel(dataValue);
     if (!createRaffleResult.ok && createRaffleResult.message) {
@@ -55,6 +55,7 @@ export function ScannerModel() {
         setCupom(data);
         return router.push("../sorteios/festival-tv/register");
       }
+      onLoading(false);
       setModalInfo({
         title: "Atenção",
         description: createRaffleResult.message,
