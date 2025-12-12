@@ -54,15 +54,16 @@ export function ScannerModel({ openScanner, onOpenScanner, onLoading }) {
   const devices = useDevices();
 
   async function handleCreateRaffle(data) {
+    handleOpenScanner();
     onLoading(true);
     const cpf = useCpfStore.getState();
     const dataValue = Regex(/p=([^|]+)/, data[0].rawValue);
     const createRaffleResult = await createRaffleModel(dataValue, cpf.cpf);
     if (!createRaffleResult.ok && createRaffleResult.message) {
-      if (createRaffleResult.message === "Cliente não encontrado no sistema") {
+      if (createRaffleResult.message === "CPF não encontrado no sistema!") {
         clearCupom();
         setCupom(data);
-        return router.push("../sorteios/festival-tv/register");
+        return router.push("../festival-tv/register");
       }
       if (createRaffleResult.message === "CPF inválido!") {
         setModalInfo({
