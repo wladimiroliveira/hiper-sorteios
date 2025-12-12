@@ -8,13 +8,11 @@ import { useEffect, useState } from "react";
 
 export default function Page() {
   const { raffles } = useRafflesStore();
-  console.log(raffles);
   const [numsGerados, setNumsGerados] = useState([]);
 
   useEffect(() => {
     if (Array.isArray(raffles)) {
       setNumsGerados(raffles.numbers);
-      console.log(numsGerados);
     }
   }, [raffles]);
 

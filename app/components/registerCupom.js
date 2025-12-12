@@ -16,10 +16,9 @@ import { IconSend } from "@tabler/icons-react";
 
 import { Modal } from "@/app/components/modal";
 
-export function RegisterCupomContainer() {
+export function RegisterCupomContainer({ onLoading }) {
   //React Hooks
   const router = useRouter();
-  const pathname = usePathname();
   const [modalInfo, setModalInfo] = useState();
   const [open, setOpen] = useState(false);
 
@@ -33,6 +32,7 @@ export function RegisterCupomContainer() {
   }
 
   async function handleCreateRaffle(data) {
+    onLoading(true);
     const createRaffleResult = await createRaffleModel(data);
     // console.log(createRaffleResult);
     if (!createRaffleResult.ok && createRaffleResult.message) {
@@ -41,6 +41,7 @@ export function RegisterCupomContainer() {
         setCupom(data);
         return router.push("../sorteios/festival-tv/register");
       }
+      onLoading(false);
       setModalInfo({
         title: "Atenção",
         description: createRaffleResult.message,
