@@ -1,15 +1,21 @@
-export async function createRaffleModel(nfcInfo) {
+export async function createRaffleModel(nfcInfo, cpf) {
   try {
     let cupomData = {};
+
+    if (!cpf) {
+      throw new Error({ message: "CPF não localizado" });
+    }
 
     if (typeof nfcInfo === "string") {
       cupomData = {
         nfc_key: nfcInfo,
+        cpf: cpf,
       };
     } else if (nfcInfo.cupom && nfcInfo.serie) {
       cupomData = {
         nfc_number: Number(nfcInfo.cupom),
         nfc_serie: Number(nfcInfo.serie),
+        cpf: cpf,
       };
     }
 

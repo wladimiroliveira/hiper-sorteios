@@ -22,7 +22,7 @@ export default function Page() {
   }
 
   return (
-    <div>
+    <div className="flex flex-col gap-4">
       <div
         className={clsx("flex fixed h-full w-full bg-gray-400/50 backdrop-blur-sm left-0 top-0 transition-all", {
           "opacity-0 pointer-events-none": !loading,
@@ -31,7 +31,9 @@ export default function Page() {
       >
         <LoadingThreeDotsJumping />
       </div>
-      <Navbar />
+      <div className="mb-4">
+        <Navbar />
+      </div>
       <Image
         className={clsx("w-[363px] h-[328px] rounded-sm", {
           hidden: openScanner,
