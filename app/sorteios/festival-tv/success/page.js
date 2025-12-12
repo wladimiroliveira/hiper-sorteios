@@ -36,7 +36,7 @@ export default function Page() {
       </div>
 
       <div className="flex flex-col gap-4 mt-8">
-        <h2 className="font-bold text-xl text-center">Números gerados</h2>
+        <h2 className="font-bold text-xl text-center">Códigos das rifas gerados</h2>
 
         <div className="flex flex-col items-center">
           {Array.isArray(raffles) ? (

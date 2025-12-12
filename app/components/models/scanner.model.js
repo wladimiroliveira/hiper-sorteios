@@ -8,14 +8,22 @@ import { Modal } from "../modal";
 import { Button } from "@/components/ui/button";
 import { IconCameraFilled, IconX } from "@tabler/icons-react";
 import clsx from "clsx";
+import { useCpfStore } from "@/store/cpf.store";
 
 export function ScannerModel({ openScanner, onOpenScanner, onLoading }) {
+  const [redirectPath, setRedirectPath] = useState(null);
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [modalInfo, setModalInfo] = useState({});
   const [open, setOpen] = useState(false);
 
   function handleSetOpen(bool) {
     setOpen(bool);
+
+    if (!bool && redirectPath) {
+      console.log(redirectPath);
+      router.push(redirectPath);
+      setRedirectPath(null);
+    }
   }
 
   function handleOpenScanner() {
@@ -47,14 +55,26 @@ export function ScannerModel({ openScanner, onOpenScanner, onLoading }) {
 
   async function handleCreateRaffle(data) {
     onLoading(true);
+    const cpf = useCpfStore.getState();
     const dataValue = Regex(/p=([^|]+)/, data[0].rawValue);
-    const createRaffleResult = await createRaffleModel(dataValue);
+    const createRaffleResult = await createRaffleModel(dataValue, cpf.cpf);
     if (!createRaffleResult.ok && createRaffleResult.message) {
       if (createRaffleResult.message === "Cliente não encontrado no sistema") {
         clearCupom();
         setCupom(data);
         return router.push("../sorteios/festival-tv/register");
       }
+      if (createRaffleResult.message === "CPF inválido!") {
+        setModalInfo({
+          title: "Atenção",
+          description: createRaffleResult.message,
+        });
+
+        setRedirectPath("../sorteios/festival-tv");
+        setOpen(true);
+        return;
+      }
+
       onLoading(false);
       setModalInfo({
         title: "Atenção",

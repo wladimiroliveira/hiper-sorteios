@@ -17,6 +17,7 @@ import { createRaffleModel } from "@/app/components/models/createRaffle.model";
 
 // Local Storage
 import { useRafflesStore } from "@/store/raffles.store";
+import { useCpfStore } from "@/store/cpf.store";
 import { useCupomStore } from "@/store/cupom.store";
 
 export function Register({ onLoading }) {
@@ -24,6 +25,7 @@ export function Register({ onLoading }) {
   const { clearRaffles, setRaffles } = useRafflesStore();
   const [open, setOpen] = useState(false);
   const [modalInfo, setModalInfo] = useState({});
+  const [redirectPath, setRedirectPath] = useState(null);
 
   const router = useRouter();
 
@@ -36,11 +38,12 @@ export function Register({ onLoading }) {
   });
 
   async function handleCreateUser(data) {
+    const cpf = useCpfStore.getState();
     // 1️⃣ Criar cliente
     const clientRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/raffle-clients`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, cpf: cpf.cpf }),
     });
 
     const clientData = await clientRes.json();
@@ -58,7 +61,7 @@ export function Register({ onLoading }) {
 
     async function handleCreateRaffle(raffleData) {
       onLoading(true);
-      const createRaffleResult = await createRaffleModel(raffleData);
+      const createRaffleResult = await createRaffleModel(raffleData, cpf.cpf);
       if (!createRaffleResult.ok && createRaffleResult.message) {
         if (createRaffleResult.message === "Cliente não encontrado no sistema") {
           onLoading(false);
@@ -71,6 +74,18 @@ export function Register({ onLoading }) {
           clearCupom();
           setCupom(raffleData);
         }
+        if (createRaffleResult.message === "Valor do cupom não atingiu o valor mínimo para participar do sorteio.") {
+          setModalInfo({
+            title: "Atenção",
+            description: createRaffleResult.message,
+          });
+          setOpen(true);
+
+          // 👉 Definir redirect após OK
+          setRedirectPath("../festival-tv/coleta");
+          setOpen(true);
+          return;
+        }
         setModalInfo({
           title: "Atenção",
           description: createRaffleResult.message,
@@ -80,7 +95,11 @@ export function Register({ onLoading }) {
       if (createRaffleResult.ok) {
         clearRaffles();
         setRaffles(createRaffleResult?.raffles);
-        return router.push("../festival-tv/success");
+        onLoading(false);
+
+        router.push("../festival-tv/success");
+
+        return;
       }
     }
 
@@ -89,6 +108,11 @@ export function Register({ onLoading }) {
 
   function handleSetOpen(bool) {
     setOpen(bool);
+
+    if (!bool && redirectPath) {
+      router.push(redirectPath);
+      setRedirectPath(null);
+    }
   }
 
   return (
@@ -111,19 +135,6 @@ export function Register({ onLoading }) {
                 <FormLabel>Nome completo *</FormLabel>
                 <FormControl>
                   <Input placeholder="Nome completo..." type="text" {...field} required />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="cpf"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>CPF *</FormLabel>
-                <FormControl>
-                  <Input type="cpf" placeholder="000.000.000-00" {...field} required />
                 </FormControl>
               </FormItem>
             )}
