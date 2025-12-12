@@ -15,7 +15,11 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR">
-      <body className={`${roboto.className} antialiased`}>{children}</body>
+      <body className={`${roboto.className} antialiased`}>
+        <div className="flex flex-col align-items justify-center max-w-[363px] m-auto pt-8 pb-8 pl-4 pr-4 gap-8">
+          {children}
+        </div>
+      </body>
     </html>
   );
 }
