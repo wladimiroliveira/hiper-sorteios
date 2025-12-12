@@ -24,7 +24,7 @@ services:
 
   api:
     container_name: "dev-api"
-    image: oliveirawladimir/hipersenna-api:1.6.6
+    image: oliveirawladimir/hipersenna-api:1.7.2
     env_file:
       - ../.env.development
     environment:

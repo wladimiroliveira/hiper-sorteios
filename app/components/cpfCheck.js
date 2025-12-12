@@ -33,7 +33,7 @@ export function CheckCpf({ onLoading }) {
     try {
       onLoading(true);
       clearCpf();
-      setCpf(data);
+      setCpf(data.cpf);
       router.push("../sorteios/festival-tv/coleta");
     } catch (err) {
       console.error(err);

@@ -7,6 +7,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { createRaffleModel } from "@/app/components/models/createRaffle.model";
 
 import { useCupomStore } from "@/store/cupom.store";
+import { useCpfStore } from "@/store/cpf.store";
 import { useRafflesStore } from "@/store/raffles.store";
 
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
@@ -21,25 +22,49 @@ export function RegisterCupomContainer({ onLoading }) {
   const router = useRouter();
   const [modalInfo, setModalInfo] = useState();
   const [open, setOpen] = useState(false);
+  const [redirectPath, setRedirectPath] = useState(null);
 
   // Zustand Stores
   const { setCupom, clearCupom } = useCupomStore();
   const { setRaffles, clearRaffles } = useRafflesStore();
+  const { setCpf, clearCpf } = useCpfStore();
 
   // Handle Functions
   function handleSetOpen(bool) {
     setOpen(bool);
+
+    if (!bool && redirectPath) {
+      console.log(redirectPath);
+      router.push(redirectPath);
+      setRedirectPath(null);
+    }
   }
 
   async function handleCreateRaffle(data) {
     onLoading(true);
-    const createRaffleResult = await createRaffleModel(data);
+    const cpf = useCpfStore.getState();
+    const createRaffleResult = await createRaffleModel(data, cpf.cpf);
     // console.log(createRaffleResult);
+    if (createRaffleResult.ok) {
+      clearRaffles();
+      setRaffles(createRaffleResult?.raffles);
+      return router.push("../festival-tv/success");
+    }
     if (!createRaffleResult.ok && createRaffleResult.message) {
-      if (createRaffleResult.message === "Cliente não encontrado no sistema") {
+      if (createRaffleResult.status === 404 && createRaffleResult.message === "CPF não encontrado no sistema!") {
         clearCupom();
         setCupom(data);
-        return router.push("../sorteios/festival-tv/register");
+        return router.push("../festival-tv/register");
+      }
+      if (createRaffleResult.message === "CPF inválido!") {
+        setModalInfo({
+          title: "Atenção",
+          description: createRaffleResult.message,
+        });
+
+        setRedirectPath("../festival-tv");
+        setOpen(true);
+        return;
       }
       onLoading(false);
       setModalInfo({
@@ -47,11 +72,6 @@ export function RegisterCupomContainer({ onLoading }) {
         description: createRaffleResult.message,
       });
       setOpen(true);
-    }
-    if (createRaffleResult.ok) {
-      clearRaffles();
-      setRaffles(createRaffleResult?.raffles);
-      return router.push("../sorteios/festival-tv/success");
     }
   }
 

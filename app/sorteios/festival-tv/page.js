@@ -4,6 +4,7 @@ import LoadingThreeDotsJumping from "@/app/components/animations/jumpingDots.ani
 import { CheckCpf } from "@/app/components/cpfCheck";
 import { Navbar } from "@/app/components/navbar";
 import clsx from "clsx";
+import Image from "next/image";
 import { useState } from "react";
 
 export default function Page() {
@@ -21,7 +22,9 @@ export default function Page() {
       >
         <LoadingThreeDotsJumping />
       </div>
-      <Navbar />
+      <div className="flex items-center justify-center w-full">
+        <Image src="/logo-senna.svg" alt="" height={21.08} width={31} />
+      </div>
       <h1 className="text-lg font-bold">Insira seu CPF</h1>
       <CheckCpf onLoading={handleStartLoading} />
     </div>
